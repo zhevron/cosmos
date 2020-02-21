@@ -32,7 +32,7 @@ type Equal struct {
 }
 
 func (e Equal) String() string {
-	return e.Field + "=" + valueToString(e.Value)
+	return e.Field + " = " + valueToString(e.Value)
 }
 
 type NotEqual struct {
@@ -41,7 +41,7 @@ type NotEqual struct {
 }
 
 func (e NotEqual) String() string {
-	return e.Field + "!=" + valueToString(e.Value)
+	return e.Field + " != " + valueToString(e.Value)
 }
 
 type Less struct {
@@ -50,7 +50,7 @@ type Less struct {
 }
 
 func (e Less) String() string {
-	return e.Field + "<" + valueToString(e.Value)
+	return e.Field + " < " + valueToString(e.Value)
 }
 
 type LessOrEqual struct {
@@ -59,7 +59,7 @@ type LessOrEqual struct {
 }
 
 func (e LessOrEqual) String() string {
-	return e.Field + "<=" + valueToString(e.Value)
+	return e.Field + " <= " + valueToString(e.Value)
 }
 
 type Greater struct {
@@ -68,7 +68,7 @@ type Greater struct {
 }
 
 func (e Greater) String() string {
-	return e.Field + ">" + valueToString(e.Value)
+	return e.Field + " > " + valueToString(e.Value)
 }
 
 type GreaterOrEqual struct {
@@ -77,7 +77,7 @@ type GreaterOrEqual struct {
 }
 
 func (e GreaterOrEqual) String() string {
-	return e.Field + ">=" + valueToString(e.Value)
+	return e.Field + " >= " + valueToString(e.Value)
 }
 
 type And []Expression
