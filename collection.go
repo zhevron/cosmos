@@ -12,25 +12,25 @@ type Collection struct {
 	database *Database
 }
 
-func (c Collection) Get(ctx context.Context, partitionKey string, id string, out interface{}) error {
+func (c Collection) Get(ctx context.Context, partitionKey interface{}, id string, out interface{}) error {
 	headers := map[string]string{
-		api.HEADER_PARTITION_KEY: partitionKey,
+		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
 
 	_, err := c.database.Client().get(ctx, createDocumentLink(c.database.ID, c.ID, id), out, headers)
 	return err
 }
 
-func (c Collection) Query(ctx context.Context, partitionKey string, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
+func (c Collection) Query(ctx context.Context, partitionKey interface{}, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
 	headers := map[string]string{
 		api.HEADER_CONTENT_TYPE: "application/query+json",
 		api.HEADER_IS_QUERY:     "True",
 	}
 
-	if len(partitionKey) == 0 {
+	if partitionKey == nil {
 		headers[api.HEADER_QUERY_CROSSPARTITION] = "True"
 	} else {
-		headers[api.HEADER_PARTITION_KEY] = partitionKey
+		headers[api.HEADER_PARTITION_KEY] = makePartitionKeyHeaderValue(partitionKey)
 	}
 
 	if params == nil {

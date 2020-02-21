@@ -244,3 +244,11 @@ func serialize(value interface{}) ([]byte, error) {
 		return json.Marshal(v)
 	}
 }
+
+func makePartitionKeyHeaderValue(partitionKey interface{}) string {
+	v, err := json.Marshal([]interface{}{partitionKey})
+	if err != nil {
+		return ""
+	}
+	return string(v)
+}
