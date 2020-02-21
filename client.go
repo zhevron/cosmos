@@ -51,7 +51,7 @@ func Dial(ctx context.Context, endpoint string, key string) (*Client, error) {
 
 func (c Client) Database(ctx context.Context, id string) (*Database, error) {
 	var db api.Database
-	if err := c.get(ctx, createDatabaseLink(id), &db, nil); err != nil {
+	if _, err := c.get(ctx, createDatabaseLink(id), &db, nil); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +63,7 @@ func (c Client) Database(ctx context.Context, id string) (*Database, error) {
 
 func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 	var res api.ListDatabasesResponse
-	if err := c.get(ctx, createDatabaseLink(""), &res, nil); err != nil {
+	if _, err := c.get(ctx, createDatabaseLink(""), &res, nil); err != nil {
 		return nil, err
 	}
 
@@ -81,23 +81,23 @@ func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 // TODO: Client.CreateDatabase
 // TODO: Client.DeleteDatabase
 
-func (c Client) get(ctx context.Context, link string, out interface{}, headers map[string]string) error {
+func (c Client) get(ctx context.Context, link string, out interface{}, headers map[string]string) (*http.Response, error) {
 	return c.request(ctx, http.MethodGet, link, nil, out, headers)
 }
 
-func (c Client) post(ctx context.Context, link string, body interface{}, out interface{}, headers map[string]string) error {
+func (c Client) post(ctx context.Context, link string, body interface{}, out interface{}, headers map[string]string) (*http.Response, error) {
 	return c.request(ctx, http.MethodPost, link, body, out, headers)
 }
 
-func (c Client) put(ctx context.Context, link string, body interface{}, out interface{}, headers map[string]string) error {
+func (c Client) put(ctx context.Context, link string, body interface{}, out interface{}, headers map[string]string) (*http.Response, error) {
 	return c.request(ctx, http.MethodPut, link, body, out, headers)
 }
 
-func (c Client) delete(ctx context.Context, link string, headers map[string]string) error {
+func (c Client) delete(ctx context.Context, link string, headers map[string]string) (*http.Response, error) {
 	return c.request(ctx, http.MethodDelete, link, nil, nil, headers)
 }
 
-func (c Client) request(ctx context.Context, method string, link string, body interface{}, out interface{}, headers map[string]string) error {
+func (c Client) request(ctx context.Context, method string, link string, body interface{}, out interface{}, headers map[string]string) (*http.Response, error) {
 	uri, _ := url.Parse(c.endpoint.String())
 	uri.Path = link
 
@@ -105,7 +105,7 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	if body != nil {
 		bodyJSON, err := serialize(body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		reader = bytes.NewBuffer(bodyJSON)
@@ -113,12 +113,12 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 
 	req, err := http.NewRequestWithContext(ctx, method, uri.String(), reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	applyDefaultHeaders(req)
 	for k, v := range headers {
-		req.Header.Add(k, v)
+		req.Header.Set(k, v)
 	}
 
 	signRequest(c.key, req)
@@ -127,12 +127,12 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 
 func applyDefaultHeaders(req *http.Request) {
 	if req.Method == http.MethodPost || req.Method == http.MethodPut {
-		req.Header.Add(api.HEADER_CONTENT_TYPE, "application/json")
+		req.Header.Set(api.HEADER_CONTENT_TYPE, "application/json")
 	}
 
-	req.Header.Add(api.HEADER_DATE, time.Now().UTC().Format(api.TIME_FORMAT))
-	req.Header.Add(api.HEADER_MAX_ITEM_COUNT, "-1")
-	req.Header.Add(api.HEADER_VERSION, apiVersion)
+	req.Header.Set(api.HEADER_DATE, time.Now().UTC().Format(api.TIME_FORMAT))
+	req.Header.Set(api.HEADER_MAX_ITEM_COUNT, "-1")
+	req.Header.Set(api.HEADER_VERSION, apiVersion)
 }
 
 func signRequest(key Key, req *http.Request) {
@@ -170,21 +170,21 @@ func resourceTypeFromLink(uri string) (string, string) {
 	}
 }
 
-func doRequest(client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) error {
+func doRequest(client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	res, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
 		if res.ContentLength == 0 || out == nil {
-			return nil
+			return res, nil
 		}
 
-		return json.NewDecoder(res.Body).Decode(out)
+		return res, json.NewDecoder(res.Body).Decode(out)
 	case http.StatusNoContent:
-		return nil
+		return res, nil
 	}
 
 	if shouldRetry(res.StatusCode) && currentAttempt < maxRetries {
@@ -192,7 +192,7 @@ func doRequest(client *http.Client, req *http.Request, out interface{}, currentA
 		return doRequest(client, req, out, currentAttempt+1, maxRetries)
 	}
 
-	return errorFromStatusCode(res.StatusCode)
+	return res, errorFromStatusCode(res.StatusCode)
 }
 
 func shouldRetry(statusCode int) bool {

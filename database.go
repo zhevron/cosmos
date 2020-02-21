@@ -14,7 +14,7 @@ type Database struct {
 
 func (d Database) Collection(ctx context.Context, id string) (*Collection, error) {
 	var collection api.Collection
-	if err := d.client.get(ctx, createCollectionLink(d.ID, id), &collection, nil); err != nil {
+	if _, err := d.client.get(ctx, createCollectionLink(d.ID, id), &collection, nil); err != nil {
 		return nil, err
 	}
 
@@ -26,7 +26,7 @@ func (d Database) Collection(ctx context.Context, id string) (*Collection, error
 
 func (d Database) ListCollections(ctx context.Context) ([]*Collection, error) {
 	var res api.ListCollectionsResponse
-	if err := d.client.get(ctx, createCollectionLink(d.ID, ""), &res, nil); err != nil {
+	if _, err := d.client.get(ctx, createCollectionLink(d.ID, ""), &res, nil); err != nil {
 		return nil, err
 	}
 
