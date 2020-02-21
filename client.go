@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/patrickmn/go-cache"
+
 	"github.com/zhevron/cosmos/api"
 )
 
@@ -24,6 +26,7 @@ type Client struct {
 	client     *http.Client
 	endpoint   *url.URL
 	key        Key
+	cache      *cache.Cache
 }
 
 func Dial(ctx context.Context, endpoint string, key string) (*Client, error) {
@@ -44,21 +47,30 @@ func Dial(ctx context.Context, endpoint string, key string) (*Client, error) {
 		},
 		endpoint: url,
 		key:      k,
+		cache:    cache.New(5*time.Minute, 10*time.Minute),
 	}
 
 	return client, nil
 }
 
 func (c Client) Database(ctx context.Context, id string) (*Database, error) {
+	if database, found := c.cache.Get(id); found {
+		return database.(*Database), nil
+	}
+
 	var db api.Database
 	if _, err := c.get(ctx, createDatabaseLink(id), &db, nil); err != nil {
 		return nil, err
 	}
 
-	return &Database{
+	database := &Database{
 		Database: db,
 		client:   &c,
-	}, nil
+		cache:    cache.New(5*time.Minute, 10*time.Minute),
+	}
+	c.cache.Set(db.ID, database, cache.DefaultExpiration)
+
+	return database, nil
 }
 
 func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
@@ -72,7 +84,9 @@ func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 		databases[i] = &Database{
 			Database: d,
 			client:   &c,
+			cache:    cache.New(5*time.Minute, 10*time.Minute),
 		}
+		c.cache.Set(d.ID, databases[i], cache.DefaultExpiration)
 	}
 
 	return databases, nil

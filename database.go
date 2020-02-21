@@ -3,6 +3,8 @@ package cosmos
 import (
 	"context"
 
+	"github.com/patrickmn/go-cache"
+
 	"github.com/zhevron/cosmos/api"
 )
 
@@ -10,18 +12,26 @@ type Database struct {
 	api.Database
 
 	client *Client
+	cache  *cache.Cache
 }
 
 func (d Database) Collection(ctx context.Context, id string) (*Collection, error) {
-	var collection api.Collection
-	if _, err := d.client.get(ctx, createCollectionLink(d.ID, id), &collection, nil); err != nil {
+	if collection, found := d.cache.Get(id); found {
+		return collection.(*Collection), nil
+	}
+
+	var coll api.Collection
+	if _, err := d.client.get(ctx, createCollectionLink(d.ID, id), &coll, nil); err != nil {
 		return nil, err
 	}
 
-	return &Collection{
-		Collection: collection,
+	collection := &Collection{
+		Collection: coll,
 		database:   &d,
-	}, nil
+	}
+	d.cache.Set(coll.ID, collection, cache.DefaultExpiration)
+
+	return collection, nil
 }
 
 func (d Database) ListCollections(ctx context.Context) ([]*Collection, error) {
@@ -36,6 +46,7 @@ func (d Database) ListCollections(ctx context.Context) ([]*Collection, error) {
 			Collection: c,
 			database:   &d,
 		}
+		d.cache.Set(c.ID, collections[i], cache.DefaultExpiration)
 	}
 
 	return collections, nil
