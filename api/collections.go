@@ -51,5 +51,3 @@ type IndexingPolicy struct {
 type ListCollectionsResponse struct {
 	DocumentCollections []Collection `json:"DocumentCollections"`
 }
-
-// TODO: CreateCollectionRequest ()

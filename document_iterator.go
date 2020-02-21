@@ -13,7 +13,7 @@ type DocumentIterator struct {
 	client            *Client
 	headers           map[string]string
 	path              string
-	query             api.Query
+	query             *api.Query
 	continuationTokan string
 	documents         []json.RawMessage
 	total             int
@@ -21,7 +21,7 @@ type DocumentIterator struct {
 	err               error
 }
 
-func newDocumentIterator(ctx context.Context, client *Client, res *http.Response, query api.Query, queryResult api.QueryDocumentsResponse) *DocumentIterator {
+func newDocumentIterator(ctx context.Context, client *Client, res *http.Response, query *api.Query, queryResult api.ListDocumentsResponse) *DocumentIterator {
 	headers := map[string]string{}
 	for k := range res.Request.Header {
 		headers[k] = res.Request.Header.Get(k)
@@ -77,14 +77,21 @@ func (it *DocumentIterator) fetchNext() error {
 	}
 	it.headers[api.HEADER_CONTINUATION] = it.continuationTokan
 
-	var queryResult api.QueryDocumentsResponse
-	res, err := it.client.post(it.ctx, it.path, it.query, &queryResult, it.headers)
-	if err != nil {
-		return err
+	var result api.ListDocumentsResponse
+	if it.query == nil {
+		res, err := it.client.get(it.ctx, it.path, &result, it.headers)
+		if err != nil {
+			return err
+		}
+		it.continuationTokan = res.Header.Get(api.HEADER_CONTINUATION)
+	} else {
+		res, err := it.client.post(it.ctx, it.path, it.query, &result, it.headers)
+		if err != nil {
+			return err
+		}
+		it.continuationTokan = res.Header.Get(api.HEADER_CONTINUATION)
 	}
 
-	it.continuationTokan = res.Header.Get(api.HEADER_CONTINUATION)
-	it.documents = append(it.documents, queryResult.Documents...)
-
+	it.documents = append(it.documents, result.Documents...)
 	return nil
 }

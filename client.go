@@ -53,26 +53,6 @@ func Dial(ctx context.Context, endpoint string, key string) (*Client, error) {
 	return client, nil
 }
 
-func (c Client) Database(ctx context.Context, id string) (*Database, error) {
-	if database, found := c.cache.Get(id); found {
-		return database.(*Database), nil
-	}
-
-	var db api.Database
-	if _, err := c.get(ctx, createDatabaseLink(id), &db, nil); err != nil {
-		return nil, err
-	}
-
-	database := &Database{
-		Database: db,
-		client:   &c,
-		cache:    cache.New(5*time.Minute, 10*time.Minute),
-	}
-	c.cache.Set(db.ID, database, cache.DefaultExpiration)
-
-	return database, nil
-}
-
 func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 	var res api.ListDatabasesResponse
 	if _, err := c.get(ctx, createDatabaseLink(""), &res, nil); err != nil {
@@ -92,8 +72,48 @@ func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 	return databases, nil
 }
 
-// TODO: Client.CreateDatabase
-// TODO: Client.DeleteDatabase
+func (c Client) GetDatabase(ctx context.Context, id string) (*Database, error) {
+	if database, found := c.cache.Get(id); found {
+		return database.(*Database), nil
+	}
+
+	var db api.Database
+	if _, err := c.get(ctx, createDatabaseLink(id), &db, nil); err != nil {
+		return nil, err
+	}
+
+	database := &Database{
+		Database: db,
+		client:   &c,
+		cache:    cache.New(5*time.Minute, 10*time.Minute),
+	}
+	c.cache.Set(db.ID, database, cache.DefaultExpiration)
+
+	return database, nil
+}
+
+func (c Client) CreateDatabase(ctx context.Context, id string) (*Database, error) {
+	req := api.CreateDatabaseRequest{
+		ID: id,
+	}
+
+	var db api.Database
+	_, err := c.post(ctx, createDatabaseLink(""), req, &db, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Database{
+		Database: db,
+		client:   &c,
+		cache:    cache.New(5*time.Minute, 10*time.Minute),
+	}, nil
+}
+
+func (c Client) DeleteDatabase(ctx context.Context, id string) error {
+	_, err := c.delete(ctx, createDatabaseLink(id), nil)
+	return err
+}
 
 func (c Client) get(ctx context.Context, link string, out interface{}, headers map[string]string) (*http.Response, error) {
 	return c.request(ctx, http.MethodGet, link, nil, out, headers)

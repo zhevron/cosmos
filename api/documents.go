@@ -10,7 +10,7 @@ type Document struct {
 	ID string `json:"id"`
 }
 
-type QueryDocumentsResponse struct {
+type ListDocumentsResponse struct {
 	Count     int               `json:"_count"`
 	Documents []json.RawMessage `json:"Documents"`
 }

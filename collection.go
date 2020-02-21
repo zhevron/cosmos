@@ -2,6 +2,7 @@ package cosmos
 
 import (
 	"context"
+	"errors"
 
 	"github.com/zhevron/cosmos/api"
 )
@@ -12,7 +13,17 @@ type Collection struct {
 	database *Database
 }
 
-func (c Collection) Get(ctx context.Context, partitionKey interface{}, id string, out interface{}) error {
+func (c Collection) ListDocuments(ctx context.Context) (*DocumentIterator, error) {
+	var listResult api.ListDocumentsResponse
+	res, err := c.database.Client().get(ctx, createDocumentLink(c.database.ID, c.ID, ""), &listResult, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return newDocumentIterator(ctx, c.database.Client(), res, nil, listResult), nil
+}
+
+func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, id string, out interface{}) error {
 	headers := map[string]string{
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
@@ -21,7 +32,50 @@ func (c Collection) Get(ctx context.Context, partitionKey interface{}, id string
 	return err
 }
 
-func (c Collection) Query(ctx context.Context, partitionKey interface{}, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
+func (c Collection) CreateDocument(ctx context.Context, document interface{}, upsert bool) error {
+	id, err := getDocumentID(document)
+	if err != nil {
+		return err
+	}
+
+	headers := map[string]string{}
+	if upsert {
+		headers[api.HEADER_IS_UPSERT] = "True"
+	}
+
+	_, err = c.database.Client().post(ctx, createDocumentLink(c.database.ID, c.ID, id), document, nil, headers)
+	return err
+}
+
+func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
+	id, err := getDocumentID(document)
+	if err != nil {
+		return err
+	}
+
+	headers := map[string]string{
+		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
+	}
+
+	_, err = c.database.Client().put(ctx, createDocumentLink(c.database.ID, c.ID, id), document, nil, headers)
+	return err
+}
+
+func (c Collection) DeleteDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
+	id, err := getDocumentID(document)
+	if err != nil {
+		return err
+	}
+
+	headers := map[string]string{
+		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
+	}
+
+	_, err = c.database.Client().delete(ctx, createDocumentLink(c.database.ID, c.ID, id), headers)
+	return err
+}
+
+func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
 	headers := map[string]string{
 		api.HEADER_CONTENT_TYPE: "application/query+json",
 		api.HEADER_IS_QUERY:     "True",
@@ -37,12 +91,12 @@ func (c Collection) Query(ctx context.Context, partitionKey interface{}, query s
 		params = []api.QueryParameter{}
 	}
 
-	apiQuery := api.Query{
+	apiQuery := &api.Query{
 		Query:      query,
 		Parameters: params,
 	}
 
-	var queryResult api.QueryDocumentsResponse
+	var queryResult api.ListDocumentsResponse
 	res, err := c.database.Client().post(ctx, createDocumentLink(c.database.ID, c.ID, ""), apiQuery, &queryResult, headers)
 	if err != nil {
 		return nil, err
@@ -53,4 +107,16 @@ func (c Collection) Query(ctx context.Context, partitionKey interface{}, query s
 
 func (c Collection) Database() *Database {
 	return c.database
+}
+
+func getDocumentID(document interface{}) (string, error) {
+	if doc, ok := document.(*api.Document); ok {
+		return doc.ID, nil
+	}
+
+	if doc, ok := document.(api.Document); ok {
+		return doc.ID, nil
+	}
+
+	return "", errors.New("unable to find document ID from struct")
 }

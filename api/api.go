@@ -6,6 +6,7 @@ const (
 	HEADER_CONTINUATION         = "x-ms-continuation"
 	HEADER_DATE                 = "x-ms-date"
 	HEADER_IS_QUERY             = "x-ms-documentdb-isquery"
+	HEADER_IS_UPSERT            = "x-ms-documentdb-is-upsert"
 	HEADER_MAX_ITEM_COUNT       = "x-ms-max-item-count"
 	HEADER_PARTITION_KEY        = "x-ms-documentdb-partitionkey"
 	HEADER_QUERY_CROSSPARTITION = "x-ms-documentdb-query-enablecrosspartition"
