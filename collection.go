@@ -2,6 +2,7 @@ package cosmos
 
 import (
 	"context"
+	"strings"
 
 	"github.com/zhevron/cosmos/api"
 	"github.com/zhevron/cosmos/query"
@@ -38,7 +39,7 @@ func (c Collection) Query(ctx context.Context, partitionKey string, query string
 	for i, v := range params {
 		queryParams[i] = api.QueryParameter{
 			Name:  v.Name,
-			Value: v.ValueAsString(),
+			Value: strings.Replace(v.ValueAsString(), "'", "", -1),
 		}
 	}
 
