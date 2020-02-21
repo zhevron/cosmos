@@ -144,6 +144,9 @@ func valueToString(value interface{}) string {
 		return strconv.FormatBool(v)
 
 	case string:
+		if strings.HasPrefix(v, "@") {
+			return v
+		}
 		return "'" + v + "'"
 
 	default:
