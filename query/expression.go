@@ -112,13 +112,9 @@ func (e greaterOrEqual) String() string {
 	return e.Field + " >= " + valueToString(e.Value)
 }
 
-type and []Expression
+type And []Expression
 
-func And(exprs ...Expression) Expression {
-	return and(exprs)
-}
-
-func (e and) String() string {
+func (e And) String() string {
 	exprs := make([]string, len(e))
 	for i, ex := range e {
 		exprs[i] = ex.String()
@@ -127,13 +123,9 @@ func (e and) String() string {
 	return "(" + strings.Join(exprs, " AND ") + ")"
 }
 
-type or []Expression
+type Or []Expression
 
-func Or(exprs ...Expression) Expression {
-	return or(exprs)
-}
-
-func (e or) String() string {
+func (e Or) String() string {
 	exprs := make([]string, len(e))
 	for i, ex := range e {
 		exprs[i] = ex.String()
