@@ -104,14 +104,41 @@ func (e Or) String() string {
 
 func valueToString(value interface{}) string {
 	switch v := value.(type) {
-	case int, int8, int16, int32, int64:
-		return strconv.FormatInt(v.(int64), 10)
+	case int:
+		return strconv.FormatInt(int64(v), 10)
 
-	case uint, uint8, uint16, uint32, uint64:
-		return strconv.FormatUint(v.(uint64), 10)
+	case int8:
+		return strconv.FormatInt(int64(v), 10)
 
-	case float32, float64:
-		return strconv.FormatFloat(v.(float64), 'f', -1, 64)
+	case int16:
+		return strconv.FormatInt(int64(v), 10)
+
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+
+	case int64:
+		return strconv.FormatInt(v, 10)
+
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+
+	case uint64:
+		return strconv.FormatUint(v, 10)
+
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 64)
+
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
 
 	case bool:
 		return strconv.FormatBool(v)
