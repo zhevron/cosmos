@@ -1,0 +1,10 @@
+linters:
+  enable:
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
+    - nakedret
+    - prealloc

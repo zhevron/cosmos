@@ -1,0 +1,37 @@
+{
+	"name": "Go",
+	"dockerFile": "Dockerfile",
+	"workspaceMount": "src=${localWorkspaceFolder},dst=/workspace,type=bind,consistency=cached",
+    "workspaceFolder": "/workspace",
+	"runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
+    "mounts": [
+        "source=cosmos-extensions,target=/root/.vscode-server/extensions,type=volume"
+    ],
+	"extensions": [
+		"eamodio.gitlens",
+        "editorconfig.editorconfig",
+        "gruntfuggly.todo-tree",
+        "ms-vscode.go",
+    ],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/zsh",
+        "[go]": {
+            "editor.snippetSuggestions": "none",
+            "editor.formatOnSave": true,
+            "editor.codeActionsOnSave": {
+                "source.organizeImports": true
+            }
+        },
+        "go.gopath": "/go",
+        "go.formatTool": "goimports",
+        "go.lintTool": "golangci-lint",
+        "go.useLanguageServer": true,
+        "gopls": {
+            "usePlaceholders": true,
+            "deepCompletion": true
+        },
+        "todo-tree.general.statusBar": "top three"
+    },
+	"postCreateCommand": "go mod download",
+    "shutdownAction": "stopContainer"
+}
