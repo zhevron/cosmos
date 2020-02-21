@@ -11,8 +11,6 @@ type Expression interface {
 }
 
 type IsNull struct {
-	Expression
-
 	Field string
 }
 
@@ -21,8 +19,6 @@ func (e IsNull) String() string {
 }
 
 type IsNotNull struct {
-	Expression
-
 	Field string
 }
 
@@ -31,8 +27,6 @@ func (e IsNotNull) String() string {
 }
 
 type Equal struct {
-	Expression
-
 	Field string
 	Value interface{}
 }
@@ -42,8 +36,6 @@ func (e Equal) String() string {
 }
 
 type NotEqual struct {
-	Expression
-
 	Field string
 	Value interface{}
 }
@@ -53,8 +45,6 @@ func (e NotEqual) String() string {
 }
 
 type Less struct {
-	Expression
-
 	Field string
 	Value interface{}
 }
@@ -64,8 +54,6 @@ func (e Less) String() string {
 }
 
 type LessOrEqual struct {
-	Expression
-
 	Field string
 	Value interface{}
 }
@@ -75,8 +63,6 @@ func (e LessOrEqual) String() string {
 }
 
 type Greater struct {
-	Expression
-
 	Field string
 	Value interface{}
 }
@@ -86,8 +72,6 @@ func (e Greater) String() string {
 }
 
 type GreaterOrEqual struct {
-	Expression
-
 	Field string
 	Value interface{}
 }

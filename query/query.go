@@ -51,14 +51,14 @@ func (q Query) OrderBy(field string, direction Order) Query {
 }
 
 func (q Query) String() string {
-	query := "SELECT " + strings.Join(q.fields, ",") + "FROM " + q.from // nolint:gosec
+	query := "SELECT " + strings.Join(q.fields, ",") + " FROM " + q.from // nolint:gosec
 
 	if q.where != nil {
-		query += "WHERE " + q.where.String() // nolint:gosec
+		query += " WHERE " + q.where.String() // nolint:gosec
 	}
 
 	if q.order != nil {
-		query += "ORDER BY " + q.order.field + " " + string(q.order.direction) // nolint:gosec
+		query += " ORDER BY " + q.order.field + " " + string(q.order.direction) // nolint:gosec
 	}
 
 	return query

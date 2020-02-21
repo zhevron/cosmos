@@ -63,6 +63,10 @@ func (it *DocumentIterator) Reset() {
 	it.err = nil
 }
 
+func (it *DocumentIterator) Count() int64 {
+	return it.total
+}
+
 func (it *DocumentIterator) Err() error {
 	return it.err
 }
