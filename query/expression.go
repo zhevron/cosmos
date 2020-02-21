@@ -10,79 +10,115 @@ type Expression interface {
 	String() string
 }
 
-type IsNull struct {
+type isNull struct {
 	Field string
 }
 
-func (e IsNull) String() string {
+func IsNull(field string) Expression {
+	return isNull{Field: field}
+}
+
+func (e isNull) String() string {
 	return "IS_NULL(" + e.Field + ")"
 }
 
-type IsNotNull struct {
+type isNotNull struct {
 	Field string
 }
 
-func (e IsNotNull) String() string {
+func IsNotNull(field string) Expression {
+	return isNotNull{Field: field}
+}
+
+func (e isNotNull) String() string {
 	return "IS_NULL(" + e.Field + ") = false"
 }
 
-type Equal struct {
+type equal struct {
 	Field string
 	Value interface{}
 }
 
-func (e Equal) String() string {
+func Equal(field string, value interface{}) Expression {
+	return equal{Field: field, Value: value}
+}
+
+func (e equal) String() string {
 	return e.Field + " = " + valueToString(e.Value)
 }
 
-type NotEqual struct {
+type notEqual struct {
 	Field string
 	Value interface{}
 }
 
-func (e NotEqual) String() string {
+func NotEqual(field string, value interface{}) Expression {
+	return notEqual{Field: field, Value: value}
+}
+
+func (e notEqual) String() string {
 	return e.Field + " != " + valueToString(e.Value)
 }
 
-type Less struct {
+type less struct {
 	Field string
 	Value interface{}
 }
 
-func (e Less) String() string {
+func Less(field string, value interface{}) Expression {
+	return less{Field: field, Value: value}
+}
+
+func (e less) String() string {
 	return e.Field + " < " + valueToString(e.Value)
 }
 
-type LessOrEqual struct {
+type lessOrEqual struct {
 	Field string
 	Value interface{}
 }
 
-func (e LessOrEqual) String() string {
+func LessOrEqual(field string, value interface{}) Expression {
+	return lessOrEqual{Field: field, Value: value}
+}
+
+func (e lessOrEqual) String() string {
 	return e.Field + " <= " + valueToString(e.Value)
 }
 
-type Greater struct {
+type greater struct {
 	Field string
 	Value interface{}
 }
 
-func (e Greater) String() string {
+func Greater(field string, value interface{}) Expression {
+	return greater{Field: field, Value: value}
+}
+
+func (e greater) String() string {
 	return e.Field + " > " + valueToString(e.Value)
 }
 
-type GreaterOrEqual struct {
+type greaterOrEqual struct {
 	Field string
 	Value interface{}
 }
 
-func (e GreaterOrEqual) String() string {
+func GreaterOrEqual(field string, value interface{}) Expression {
+	return greaterOrEqual{Field: field, Value: value}
+}
+
+func (e greaterOrEqual) String() string {
 	return e.Field + " >= " + valueToString(e.Value)
 }
 
-type And []Expression
+type and []Expression
 
-func (e And) String() string {
+func And(exprs ...Expression) Expression {
+	return and(exprs)
+}
+
+func (e and) String() string {
 	exprs := make([]string, len(e))
 	for i, ex := range e {
 		exprs[i] = ex.String()
@@ -91,9 +127,13 @@ func (e And) String() string {
 	return "(" + strings.Join(exprs, " AND ") + ")"
 }
 
-type Or []Expression
+type or []Expression
 
-func (e Or) String() string {
+func Or(exprs ...Expression) Expression {
+	return or(exprs)
+}
+
+func (e or) String() string {
 	exprs := make([]string, len(e))
 	for i, ex := range e {
 		exprs[i] = ex.String()
