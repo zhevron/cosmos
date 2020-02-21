@@ -2,10 +2,8 @@ package cosmos
 
 import (
 	"context"
-	"strings"
 
 	"github.com/zhevron/cosmos/api"
-	"github.com/zhevron/cosmos/query"
 )
 
 type Collection struct {
@@ -23,7 +21,7 @@ func (c Collection) Get(ctx context.Context, partitionKey string, id string, out
 	return err
 }
 
-func (c Collection) Query(ctx context.Context, partitionKey string, query string, params ...query.QueryParameter) (*DocumentIterator, error) {
+func (c Collection) Query(ctx context.Context, partitionKey string, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
 	headers := map[string]string{
 		api.HEADER_CONTENT_TYPE: "application/query+json",
 		api.HEADER_IS_QUERY:     "True",
@@ -35,17 +33,13 @@ func (c Collection) Query(ctx context.Context, partitionKey string, query string
 		headers[api.HEADER_PARTITION_KEY] = partitionKey
 	}
 
-	queryParams := make([]api.QueryParameter, len(params))
-	for i, v := range params {
-		queryParams[i] = api.QueryParameter{
-			Name:  v.Name,
-			Value: strings.Replace(v.ValueAsString(), "'", "", -1),
-		}
+	if params == nil {
+		params = []api.QueryParameter{}
 	}
 
 	apiQuery := api.Query{
 		Query:      query,
-		Parameters: queryParams,
+		Parameters: params,
 	}
 
 	var queryResult api.QueryDocumentsResponse

@@ -63,12 +63,3 @@ func (q Query) String() string {
 
 	return query
 }
-
-type QueryParameter struct {
-	Name  string
-	Value interface{}
-}
-
-func (p QueryParameter) ValueAsString() string {
-	return valueToString(p.Value)
-}
