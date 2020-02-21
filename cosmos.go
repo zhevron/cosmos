@@ -21,7 +21,7 @@ var (
 )
 
 type Document = api.Document
-type QueryParameter = api.QueryParameter
+type QueryParameter = query.QueryParameter
 
 func Select(fields ...string) query.Query {
 	return query.Select(fields...)
