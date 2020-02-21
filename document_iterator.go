@@ -41,6 +41,24 @@ func newDocumentIterator(ctx context.Context, client *Client, res *http.Response
 	}
 }
 
+func (it *DocumentIterator) All(out interface{}) error {
+	documents := make([]map[string]interface{}, it.total)
+	for i := 0; i < it.total; i++ {
+		if !it.Next(&documents[i]) {
+			break
+		}
+	}
+
+	documentsJSON, err := json.Marshal(documents)
+	if err != nil {
+		it.err = err
+		return it.err
+	}
+
+	it.err = json.Unmarshal(documentsJSON, out)
+	return it.err
+}
+
 func (it *DocumentIterator) Next(out interface{}) bool {
 	if it.err != nil {
 		return false
