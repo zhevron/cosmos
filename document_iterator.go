@@ -16,8 +16,8 @@ type DocumentIterator struct {
 	query             api.Query
 	continuationTokan string
 	documents         []json.RawMessage
-	total             int64
-	current           int64
+	total             int
+	current           int
 	err               error
 }
 
@@ -46,7 +46,7 @@ func (it *DocumentIterator) Next(out interface{}) bool {
 		return false
 	}
 
-	if it.current < int64(len(it.documents)) {
+	if it.current < len(it.documents) {
 		it.err = json.Unmarshal(it.documents[it.current], out)
 		it.current++
 		return true
@@ -63,7 +63,7 @@ func (it *DocumentIterator) Reset() {
 	it.err = nil
 }
 
-func (it *DocumentIterator) Count() int64 {
+func (it *DocumentIterator) Count() int {
 	return it.total
 }
 

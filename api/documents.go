@@ -11,6 +11,6 @@ type Document struct {
 }
 
 type QueryDocumentsResponse struct {
-	Count     int64             `json:"_count"`
+	Count     int               `json:"_count"`
 	Documents []json.RawMessage `json:"Documents"`
 }
