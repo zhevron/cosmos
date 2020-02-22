@@ -2,7 +2,7 @@ package cosmos
 
 import (
 	"context"
-	"errors"
+	"reflect"
 
 	"github.com/zhevron/cosmos/api"
 )
@@ -110,13 +110,19 @@ func (c Collection) Database() *Database {
 }
 
 func getDocumentID(document interface{}) (string, error) {
-	if doc, ok := document.(*api.Document); ok {
-		return doc.ID, nil
+	rv := reflect.ValueOf(document).Elem()
+	if rv.Kind() != reflect.Struct {
+		return "", ErrNoDocumentID
 	}
 
-	if doc, ok := document.(api.Document); ok {
-		return doc.ID, nil
+	idField := rv.Elem().FieldByName("ID")
+	if !idField.IsValid() {
+		return "", ErrNoDocumentID
 	}
 
-	return "", errors.New("unable to find document ID from struct")
+	if id, ok := idField.Interface().(string); ok {
+		return id, nil
+	}
+
+	return "", ErrNoDocumentID
 }

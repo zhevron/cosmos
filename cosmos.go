@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	ErrInvalidKey = errors.New("invalid key")
+	ErrInvalidKey   = errors.New("invalid key")
+	ErrNoDocumentID = errors.New("unable to find document ID from struct")
 	// TODO: ErrBadRequest?
 	ErrUnauthorized = errors.New("unauthorized or invalid key")
 	// TODO: ErrForbidden?
