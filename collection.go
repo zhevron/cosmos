@@ -110,18 +110,25 @@ func (c Collection) Database() *Database {
 }
 
 func getDocumentID(document interface{}) (string, error) {
-	rv := reflect.ValueOf(document).Elem()
+	rv := reflect.ValueOf(document)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
 	if rv.Kind() != reflect.Struct {
 		return "", ErrNoDocumentID
 	}
 
-	idField := rv.Elem().FieldByName("ID")
-	if !idField.IsValid() {
-		return "", ErrNoDocumentID
-	}
+	rt := rv.Type()
+	numField := rt.NumField()
+	for i := 0; i < numField; i++ {
+		if rt.Field(i).Tag.Get("json") == "id" {
+			if id, ok := rv.Field(i).Interface().(string); ok && id != "" {
+				return id, nil
+			}
 
-	if id, ok := idField.Interface().(string); ok {
-		return id, nil
+			return "", ErrNoDocumentID
+		}
 	}
 
 	return "", ErrNoDocumentID
