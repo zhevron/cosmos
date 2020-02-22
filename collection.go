@@ -32,8 +32,10 @@ func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, i
 	return err
 }
 
-func (c Collection) CreateDocument(ctx context.Context, document interface{}, upsert bool) error {
-	headers := map[string]string{}
+func (c Collection) CreateDocument(ctx context.Context, partitionKey interface{}, document interface{}, upsert bool) error {
+	headers := map[string]string{
+		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
+	}
 	if upsert {
 		headers[api.HEADER_IS_UPSERT] = "True"
 	}
