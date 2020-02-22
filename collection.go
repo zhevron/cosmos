@@ -33,17 +33,12 @@ func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, i
 }
 
 func (c Collection) CreateDocument(ctx context.Context, document interface{}, upsert bool) error {
-	id, err := getDocumentID(document)
-	if err != nil {
-		return err
-	}
-
 	headers := map[string]string{}
 	if upsert {
 		headers[api.HEADER_IS_UPSERT] = "True"
 	}
 
-	_, err = c.database.Client().post(ctx, createDocumentLink(c.database.ID, c.ID, id), document, nil, headers)
+	_, err := c.database.Client().post(ctx, createDocumentLink(c.database.ID, c.ID, ""), document, nil, headers)
 	return err
 }
 
