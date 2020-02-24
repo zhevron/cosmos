@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -110,6 +111,39 @@ func GreaterOrEqual(field string, value interface{}) Expression {
 
 func (e greaterOrEqual) String() string {
 	return e.Field + " >= " + valueToString(e.Value)
+}
+
+type in struct {
+	Field  string
+	Values []interface{}
+}
+
+func In(field string, values interface{}) Expression {
+	rv := reflect.ValueOf(values)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() != reflect.Array && rv.Kind() != reflect.Slice {
+		panic("non-array/slice value passed to query.In")
+	}
+
+	valuesLen := rv.Len()
+	interfaceValues := make([]interface{}, valuesLen)
+	for i := 0; i < valuesLen; i++ {
+		interfaceValues[i] = rv.Index(i).Interface()
+	}
+
+	return in{Field: field, Values: interfaceValues}
+}
+
+func (e in) String() string {
+	values := make([]string, len(e.Values))
+	for i, v := range e.Values {
+		values[i] = valueToString(v)
+	}
+
+	return e.Field + " IN (" + strings.Join(values, ", ") + ")"
 }
 
 type And []Expression
