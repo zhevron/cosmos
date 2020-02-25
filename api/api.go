@@ -16,7 +16,7 @@ const (
 )
 
 type BaseModel struct {
-	RID  string `json:"_rid"`
-	Etag string `json:"_etag"`
-	Ts   int64  `json:"_ts"`
+	RID  string   `json:"_rid"`
+	Etag string   `json:"_etag"`
+	Ts   DateTime `json:"_ts"`
 }
