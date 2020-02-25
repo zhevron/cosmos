@@ -21,6 +21,7 @@ var (
 	ErrInternalServerError = errors.New("internal server error")
 )
 
+type DateTime = api.DateTime
 type Document = api.Document
 type QueryParameter = api.QueryParameter
 
