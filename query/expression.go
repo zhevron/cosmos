@@ -146,6 +146,26 @@ func (e in) String() string {
 	return e.Field + " IN (" + strings.Join(values, ", ") + ")"
 }
 
+type join struct {
+	Alias  string
+	Source string
+}
+
+func Join(alias string, source string) Expression {
+	return join{
+		Alias:  alias,
+		Source: source,
+	}
+}
+
+func (e join) String() string {
+	if e.Alias == "" {
+		return "JOIN " + e.Source
+	}
+
+	return "JOIN " + e.Alias + " IN " + e.Source
+}
+
 type And []Expression
 
 func (e And) String() string {
