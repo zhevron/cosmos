@@ -11,30 +11,6 @@ type Expression interface {
 	String() string
 }
 
-type isNull struct {
-	Field string
-}
-
-func IsNull(field string) Expression {
-	return isNull{Field: field}
-}
-
-func (e isNull) String() string {
-	return "IS_NULL(" + e.Field + ")"
-}
-
-type isNotNull struct {
-	Field string
-}
-
-func IsNotNull(field string) Expression {
-	return isNotNull{Field: field}
-}
-
-func (e isNotNull) String() string {
-	return "IS_NULL(" + e.Field + ") = false"
-}
-
 type equal struct {
 	Field string
 	Value interface{}
@@ -166,6 +142,62 @@ func (e Or) String() string {
 	}
 
 	return "(" + strings.Join(exprs, " OR ") + ")"
+}
+
+type isNull struct {
+	Field string
+}
+
+func IsNull(field string) Expression {
+	return isNull{Field: field}
+}
+
+func (e isNull) String() string {
+	return "IS_NULL(" + e.Field + ")"
+}
+
+type isNotNull struct {
+	Field string
+}
+
+func IsNotNull(field string) Expression {
+	return isNotNull{Field: field}
+}
+
+func (e isNotNull) String() string {
+	return "IS_NULL(" + e.Field + ") = false"
+}
+
+type arrayContains struct {
+	Field string
+	Value interface{}
+}
+
+func ArrayContains(field string, value interface{}) Expression {
+	return arrayContains{
+		Field: field,
+		Value: value,
+	}
+}
+
+func (e arrayContains) String() string {
+	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ")"
+}
+
+type arrayNotContains struct {
+	Field string
+	Value interface{}
+}
+
+func ArrayNotContains(field string, value interface{}) Expression {
+	return arrayNotContains{
+		Field: field,
+		Value: value,
+	}
+}
+
+func (e arrayNotContains) String() string {
+	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ") = false"
 }
 
 func valueToString(value interface{}) string {
