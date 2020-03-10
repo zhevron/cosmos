@@ -7,8 +7,8 @@ import (
 
 type DateTime time.Time
 
-func (dt *DateTime) MarshalJSON() ([]byte, error) {
-	ts := time.Time(*dt).Unix()
+func (dt DateTime) MarshalJSON() ([]byte, error) {
+	ts := time.Time(dt).Unix()
 	return []byte(strconv.FormatInt(ts, 10)), nil
 }
 
