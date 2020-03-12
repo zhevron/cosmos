@@ -3,6 +3,7 @@ package cosmos
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"github.com/zhevron/cosmos/api"
 )
@@ -84,13 +85,16 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 		headers[api.HEADER_PARTITION_KEY] = makePartitionKeyHeaderValue(partitionKey)
 	}
 
-	if params == nil {
-		params = []api.QueryParameter{}
+	queryParams := []api.QueryParameter{}
+	for _, p := range params {
+		if strings.Contains(query, p.Name) {
+			queryParams = append(queryParams, p)
+		}
 	}
 
 	apiQuery := &api.Query{
 		Query:      query,
-		Parameters: params,
+		Parameters: queryParams,
 	}
 
 	var queryResult api.ListDocumentsResponse
