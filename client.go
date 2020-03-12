@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -226,30 +225,65 @@ func doRequest(client *http.Client, req *http.Request, out interface{}, currentA
 		return doRequest(client, req, out, currentAttempt+1, maxRetries)
 	}
 
-	return res, errorFromStatusCode(res.StatusCode)
+	return res, errorFromResponse(res)
 }
 
 func shouldRetry(statusCode int) bool {
 	return statusCode == http.StatusTooManyRequests || statusCode == httpRetryAfter
 }
 
-func errorFromStatusCode(statusCode int) error {
-	errorMap := map[int]error{
-		http.StatusBadRequest:            errors.New("bad request"), // TODO
-		http.StatusUnauthorized:          ErrUnauthorized,
-		http.StatusForbidden:             errors.New("forbidden"), // TODO
-		http.StatusNotFound:              ErrNotFound,
-		http.StatusRequestTimeout:        ErrTimeout,
-		http.StatusConflict:              ErrConflict,
-		http.StatusPreconditionFailed:    errors.New("precondition failed"), // TODO
-		http.StatusRequestEntityTooLarge: ErrDocumentTooLarge,
+func errorFromResponse(res *http.Response) error {
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		message, err := errorMessageFromBody(res.Body)
+		if err != nil {
+			return err
+		}
+		return &CosmosError{code: ErrBadRequest, message: message}
+
+	case http.StatusUnauthorized:
+		return &CosmosError{code: ErrUnauthorized, message: res.Status} // TODO: Message from response?
+
+	case http.StatusForbidden:
+		return &CosmosError{code: ErrForbidden, message: res.Status} // TODO: Message from response?
+
+	case http.StatusNotFound:
+		return &CosmosError{code: ErrNotFound, message: res.Status}
+
+	case http.StatusRequestTimeout:
+		return &CosmosError{code: ErrTimeout, message: res.Status} // TODO: Message from response?
+
+	case http.StatusConflict:
+		return &CosmosError{code: ErrConflict, message: res.Status} // TODO: Message from response?
+
+	case http.StatusPreconditionFailed:
+		return &CosmosError{code: ErrConcurrency, message: res.Status} // TODO: Message from response?
+
+	case http.StatusRequestEntityTooLarge:
+		return &CosmosError{code: ErrDocumentTooLarge, message: res.Status} // TODO: Message from response?
 	}
 
-	if err, found := errorMap[statusCode]; found {
-		return err
+	return &CosmosError{code: ErrInternalServerError, message: "internal server error"}
+}
+
+func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
+	var body struct {
+		Errors []struct {
+			Severity string
+			Code     string
+			Message  string
+		}
 	}
 
-	return ErrInternalServerError
+	if err := json.NewDecoder(bodyReader).Decode(&body); err != nil {
+		return "", err
+	}
+
+	if len(body.Errors) == 0 {
+		return "", nil
+	}
+
+	return body.Errors[0].Message, nil
 }
 
 func serialize(value interface{}) ([]byte, error) {
