@@ -239,31 +239,31 @@ func errorFromResponse(res *http.Response) error {
 		if err != nil {
 			return err
 		}
-		return &CosmosError{code: ErrBadRequest, message: message}
+		return &CosmosError{Code: ErrBadRequest, Message: message}
 
 	case http.StatusUnauthorized:
-		return &CosmosError{code: ErrUnauthorized, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrUnauthorized, Message: res.Status} // TODO: Message from response?
 
 	case http.StatusForbidden:
-		return &CosmosError{code: ErrForbidden, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrForbidden, Message: res.Status} // TODO: Message from response?
 
 	case http.StatusNotFound:
-		return &CosmosError{code: ErrNotFound, message: res.Status}
+		return &CosmosError{Code: ErrNotFound, Message: res.Status}
 
 	case http.StatusRequestTimeout:
-		return &CosmosError{code: ErrTimeout, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrTimeout, Message: res.Status} // TODO: Message from response?
 
 	case http.StatusConflict:
-		return &CosmosError{code: ErrConflict, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrConflict, Message: res.Status} // TODO: Message from response?
 
 	case http.StatusPreconditionFailed:
-		return &CosmosError{code: ErrConcurrency, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrConcurrency, Message: res.Status} // TODO: Message from response?
 
 	case http.StatusRequestEntityTooLarge:
-		return &CosmosError{code: ErrDocumentTooLarge, message: res.Status} // TODO: Message from response?
+		return &CosmosError{Code: ErrDocumentTooLarge, Message: res.Status} // TODO: Message from response?
 	}
 
-	return &CosmosError{code: ErrInternalServerError, message: "internal server error"}
+	return &CosmosError{Code: ErrInternalServerError, Message: "internal server error"}
 }
 
 func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {

@@ -11,7 +11,7 @@ type Key []byte
 func ParseKey(key string) (Key, error) {
 	bytes, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return nil, &CosmosError{code: ErrInvalidKey, message: err.Error()}
+		return nil, &CosmosError{Code: ErrInvalidKey, Message: err.Error()}
 	}
 
 	return Key(bytes), nil

@@ -117,7 +117,7 @@ func getDocumentID(document interface{}) (string, error) {
 	}
 
 	if rv.Kind() != reflect.Struct {
-		return "", &CosmosError{code: ErrNoDocumentID, message: "document is not a struct"}
+		return "", &CosmosError{Code: ErrNoDocumentID, Message: "document is not a struct"}
 	}
 
 	rt := rv.Type()
@@ -128,9 +128,9 @@ func getDocumentID(document interface{}) (string, error) {
 				return id, nil
 			}
 
-			return "", &CosmosError{code: ErrNoDocumentID, message: "could not convert id to string"}
+			return "", &CosmosError{Code: ErrNoDocumentID, Message: "could not convert id to string"}
 		}
 	}
 
-	return "", &CosmosError{code: ErrNoDocumentID, message: "could not find id field in struct"}
+	return "", &CosmosError{Code: ErrNoDocumentID, Message: "could not find id field in struct"}
 }

@@ -21,14 +21,10 @@ const (
 )
 
 type CosmosError struct {
-	code    ErrorCode
-	message string
-}
-
-func (e CosmosError) Code() ErrorCode {
-	return e.code
+	Code    ErrorCode
+	Message string
 }
 
 func (e *CosmosError) Error() string {
-	return fmt.Sprintf("cosmosdb error: code=%d message=%s", e.code, e.message)
+	return fmt.Sprintf("cosmosdb error: code=%d message=%s", e.Code, e.Message)
 }
