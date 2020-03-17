@@ -268,6 +268,15 @@ func errorFromResponse(res *http.Response) error {
 
 func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
 	var body struct {
+		Code    string
+		Message string
+	}
+
+	if err := json.NewDecoder(bodyReader).Decode(&body); err != nil {
+		return "", err
+	}
+
+	var errors struct {
 		Errors []struct {
 			Severity string
 			Code     string
@@ -275,15 +284,16 @@ func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
 		}
 	}
 
-	if err := json.NewDecoder(bodyReader).Decode(&body); err != nil {
+	errorsJSON := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.Replace(body.Message, "\r\n", "\n", -1), "\n")[0], "Message:"))
+	if err := json.Unmarshal([]byte(errorsJSON), &errors); err != nil {
 		return "", err
 	}
 
-	if len(body.Errors) == 0 {
+	if len(errors.Errors) == 0 {
 		return "", nil
 	}
 
-	return body.Errors[0].Message, nil
+	return errors.Errors[0].Message, nil
 }
 
 func serialize(value interface{}) ([]byte, error) {
