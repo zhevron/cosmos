@@ -66,7 +66,7 @@ func (q Query) String() string {
 	query := "SELECT " + strings.Join(q.fields, ",") + " FROM " + q.from // nolint:gosec
 
 	if len(q.joins) > 0 {
-		query += strings.Join(q.joins, " ")
+		query += " " + strings.Join(q.joins, " ")
 	}
 
 	if q.where != nil {
