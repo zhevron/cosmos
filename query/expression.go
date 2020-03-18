@@ -1,6 +1,7 @@
 package query
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -248,6 +249,18 @@ func valueToString(value interface{}) string {
 		return "'" + v + "'"
 
 	default:
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Ptr {
+			rv = rv.Elem()
+		}
+
+		kind := rv.Kind()
+		if kind == reflect.Array || kind == reflect.Slice || kind == reflect.Map || kind == reflect.Struct {
+			if b, err := json.Marshal(rv.Interface()); err == nil {
+				return string(b)
+			}
+		}
+
 		return fmt.Sprintf("'%v'", v)
 	}
 }
