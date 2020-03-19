@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+const (
+	nullValue string = "null"
+)
+
 type Expression interface {
 	String() string
 }
@@ -262,16 +266,20 @@ func valueToString(value interface{}) string {
 
 	default:
 		rv := reflect.ValueOf(v)
-		if !rv.IsValid() || rv.IsNil() {
-			return "null"
-		}
-
 		if rv.Kind() == reflect.Ptr {
+			if rv.IsNil() {
+				return nullValue
+			}
+
 			rv = rv.Elem()
 		}
 
 		switch rv.Kind() {
 		case reflect.Array, reflect.Slice:
+			if rv.IsNil() {
+				return nullValue
+			}
+
 			arr := make([]string, rv.Len())
 			for i := 0; i < rv.Len(); i++ {
 				arr[i] = valueToString(rv.Index(i))
@@ -279,6 +287,10 @@ func valueToString(value interface{}) string {
 			return "[" + strings.Join(arr, ",") + "]"
 
 		case reflect.Map:
+			if rv.IsNil() {
+				return nullValue
+			}
+
 			var arr []string
 			iter := rv.MapRange()
 			for iter.Next() {
@@ -286,7 +298,11 @@ func valueToString(value interface{}) string {
 			}
 			return "{" + strings.Join(arr, ",") + "}"
 
-		default:
+		case reflect.Struct:
+			if rv.IsNil() {
+				return nullValue
+			}
+
 			if b, err := json.Marshal(rv.Interface()); err == nil {
 				return string(b)
 			}
