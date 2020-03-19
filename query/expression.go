@@ -262,6 +262,10 @@ func valueToString(value interface{}) string {
 
 	default:
 		rv := reflect.ValueOf(v)
+		if !rv.IsValid() || rv.IsNil() {
+			return "null"
+		}
+
 		if rv.Kind() == reflect.Ptr {
 			rv = rv.Elem()
 		}
