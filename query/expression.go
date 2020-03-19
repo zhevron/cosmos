@@ -169,36 +169,48 @@ func (e isNotNull) String() string {
 	return "IS_NULL(" + e.Field + ") = false"
 }
 
-type arrayContains struct {
-	Field string
-	Value interface{}
+type arrayContainsOption func(e *arrayContains)
+
+func ContainsPartial(e *arrayContains) {
+	e.Partial = true
 }
 
-func ArrayContains(field string, value interface{}) Expression {
-	return arrayContains{
-		Field: field,
-		Value: value,
+type arrayContains struct {
+	Field   string
+	Value   interface{}
+	Partial bool
+}
+
+func ArrayContains(field string, value interface{}, opts ...arrayContainsOption) Expression {
+	e := &arrayContains{
+		Field:   field,
+		Value:   value,
+		Partial: false,
 	}
+
+	for _, o := range opts {
+		o(e)
+	}
+
+	return *e
 }
 
 func (e arrayContains) String() string {
-	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ")"
+	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ". " + valueToString(e.Partial) + ")"
 }
 
 type arrayNotContains struct {
-	Field string
-	Value interface{}
+	arrayContains
 }
 
-func ArrayNotContains(field string, value interface{}) Expression {
+func ArrayNotContains(field string, value interface{}, opts ...arrayContainsOption) Expression {
 	return arrayNotContains{
-		Field: field,
-		Value: value,
+		arrayContains: ArrayContains(field, value, opts...).(arrayContains),
 	}
 }
 
 func (e arrayNotContains) String() string {
-	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ") = false"
+	return e.arrayContains.String() + " = false"
 }
 
 func valueToString(value interface{}) string {
