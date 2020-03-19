@@ -266,8 +266,23 @@ func valueToString(value interface{}) string {
 			rv = rv.Elem()
 		}
 
-		kind := rv.Kind()
-		if kind == reflect.Array || kind == reflect.Slice || kind == reflect.Map || kind == reflect.Struct {
+		switch rv.Kind() {
+		case reflect.Array, reflect.Slice:
+			arr := make([]string, rv.Len())
+			for i := 0; i < rv.Len(); i++ {
+				arr[i] = valueToString(rv.Index(i))
+			}
+			return "[" + strings.Join(arr, ",") + "]"
+
+		case reflect.Map:
+			var arr []string
+			iter := rv.MapRange()
+			for iter.Next() {
+				arr = append(arr, valueToString(iter.Key().Interface())+": "+valueToString(iter.Value().Interface()))
+			}
+			return "{" + strings.Join(arr, ",") + "}"
+
+		default:
 			if b, err := json.Marshal(rv.Interface()); err == nil {
 				return string(b)
 			}
