@@ -279,10 +279,8 @@ func valueToString(value interface{}) string {
 		}
 
 		kind := rv.Kind()
-		if kind == reflect.Array || kind == reflect.Slice || kind == reflect.Map {
-			if rv.IsNil() {
-				return nullValue
-			}
+		if (kind == reflect.Array || kind == reflect.Slice || kind == reflect.Map) && rv.IsNil() {
+			return nullValue
 		}
 
 		switch kind {
