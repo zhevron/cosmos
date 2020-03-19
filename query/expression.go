@@ -287,7 +287,7 @@ func valueToString(value interface{}) string {
 		case reflect.Array, reflect.Slice:
 			arr := make([]string, rv.Len())
 			for i := 0; i < rv.Len(); i++ {
-				arr[i] = valueToString(rv.Index(i))
+				arr[i] = valueToString(rv.Index(i).Interface())
 			}
 			return "[" + strings.Join(arr, ",") + "]"
 
