@@ -196,7 +196,7 @@ func ArrayContains(field string, value interface{}, opts ...arrayContainsOption)
 }
 
 func (e arrayContains) String() string {
-	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ". " + valueToString(e.Partial) + ")"
+	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ", " + valueToString(e.Partial) + ")"
 }
 
 type arrayNotContains struct {
