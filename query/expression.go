@@ -265,6 +265,10 @@ func valueToString(value interface{}) string {
 		return "'" + v + "'"
 
 	default:
+		if v == nil {
+			return nullValue
+		}
+
 		rv := reflect.ValueOf(v)
 		if rv.Kind() == reflect.Ptr {
 			if rv.IsNil() {
@@ -274,12 +278,15 @@ func valueToString(value interface{}) string {
 			rv = rv.Elem()
 		}
 
-		switch rv.Kind() {
-		case reflect.Array, reflect.Slice:
+		kind := rv.Kind()
+		if kind == reflect.Array || kind == reflect.Slice || kind == reflect.Map {
 			if rv.IsNil() {
 				return nullValue
 			}
+		}
 
+		switch kind {
+		case reflect.Array, reflect.Slice:
 			arr := make([]string, rv.Len())
 			for i := 0; i < rv.Len(); i++ {
 				arr[i] = valueToString(rv.Index(i))
@@ -287,10 +294,6 @@ func valueToString(value interface{}) string {
 			return "[" + strings.Join(arr, ",") + "]"
 
 		case reflect.Map:
-			if rv.IsNil() {
-				return nullValue
-			}
-
 			var arr []string
 			iter := rv.MapRange()
 			for iter.Next() {
@@ -299,10 +302,6 @@ func valueToString(value interface{}) string {
 			return "{" + strings.Join(arr, ",") + "}"
 
 		case reflect.Struct:
-			if rv.IsNil() {
-				return nullValue
-			}
-
 			if b, err := json.Marshal(rv.Interface()); err == nil {
 				return string(b)
 			}
