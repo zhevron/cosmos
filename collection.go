@@ -2,7 +2,6 @@ package cosmos
 
 import (
 	"context"
-	"reflect"
 	"strings"
 
 	"github.com/zhevron/cosmos/api"
@@ -46,7 +45,7 @@ func (c Collection) CreateDocument(ctx context.Context, partitionKey interface{}
 }
 
 func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
-	id, err := getDocumentID(document)
+	id, err := DocumentID(document)
 	if err != nil {
 		return err
 	}
@@ -60,7 +59,7 @@ func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{
 }
 
 func (c Collection) DeleteDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
-	id, err := getDocumentID(document)
+	id, err := DocumentID(document)
 	if err != nil {
 		return err
 	}
@@ -108,29 +107,4 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 
 func (c Collection) Database() *Database {
 	return c.database
-}
-
-func getDocumentID(document interface{}) (string, error) {
-	rv := reflect.ValueOf(document)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-	}
-
-	if rv.Kind() != reflect.Struct {
-		return "", &CosmosError{Code: ErrNoDocumentID, Message: "document is not a struct"}
-	}
-
-	rt := rv.Type()
-	numField := rt.NumField()
-	for i := 0; i < numField; i++ {
-		if rt.Field(i).Tag.Get("json") == "id" {
-			if id, ok := rv.Field(i).Interface().(string); ok && id != "" {
-				return id, nil
-			}
-
-			return "", &CosmosError{Code: ErrNoDocumentID, Message: "could not convert id to string"}
-		}
-	}
-
-	return "", &CosmosError{Code: ErrNoDocumentID, Message: "could not find id field in struct"}
 }
