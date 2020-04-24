@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/zhevron/cosmos/api"
 )
 
@@ -14,6 +15,9 @@ type Collection struct {
 }
 
 func (c Collection) ListDocuments(ctx context.Context) (*DocumentIterator, error) {
+	span, ctx := c.startSpan(ctx, "cosmos.ListDocuments")
+	defer span.Finish()
+
 	var listResult api.ListDocumentsResponse
 	res, err := c.database.Client().get(ctx, createDocumentLink(c.database.ID, c.ID, ""), &listResult, nil)
 	if err != nil {
@@ -24,6 +28,9 @@ func (c Collection) ListDocuments(ctx context.Context) (*DocumentIterator, error
 }
 
 func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, id string, out interface{}) error {
+	span, ctx := c.startSpan(ctx, "cosmos.GetDocument")
+	defer span.Finish()
+
 	headers := map[string]string{
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
@@ -33,6 +40,9 @@ func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, i
 }
 
 func (c Collection) CreateDocument(ctx context.Context, partitionKey interface{}, document interface{}, upsert bool) error {
+	span, ctx := c.startSpan(ctx, "cosmos.CreateDocument")
+	defer span.Finish()
+
 	headers := map[string]string{
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
@@ -45,6 +55,9 @@ func (c Collection) CreateDocument(ctx context.Context, partitionKey interface{}
 }
 
 func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
+	span, ctx := c.startSpan(ctx, "cosmos.ReplaceDOcument")
+	defer span.Finish()
+
 	id, err := DocumentID(document)
 	if err != nil {
 		return err
@@ -59,6 +72,9 @@ func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{
 }
 
 func (c Collection) DeleteDocument(ctx context.Context, partitionKey interface{}, document interface{}) error {
+	span, ctx := c.startSpan(ctx, "cosmos.DeleteDocument")
+	defer span.Finish()
+
 	id, err := DocumentID(document)
 	if err != nil {
 		return err
@@ -73,6 +89,9 @@ func (c Collection) DeleteDocument(ctx context.Context, partitionKey interface{}
 }
 
 func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}, query string, params ...api.QueryParameter) (*DocumentIterator, error) {
+	span, ctx := c.startSpan(ctx, "cosmos.QueryDocuments")
+	defer span.Finish()
+
 	headers := map[string]string{
 		api.HEADER_CONTENT_TYPE: "application/query+json",
 		api.HEADER_IS_QUERY:     "True",
@@ -91,6 +110,9 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 		}
 	}
 
+	span.SetTag("db.statement", query)
+	span.SetTag("cosmos.parameters", queryParams)
+
 	apiQuery := &api.Query{
 		Query:      query,
 		Parameters: queryParams,
@@ -107,4 +129,11 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 
 func (c Collection) Database() *Database {
 	return c.database
+}
+
+func (c Collection) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
+	span, ctx := c.database.startSpan(ctx, operationName)
+	span.SetTag("cosmos.collection", c.ID)
+
+	return span, ctx
 }

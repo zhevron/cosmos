@@ -10,6 +10,10 @@ const (
 	HEADER_MAX_ITEM_COUNT       = "x-ms-max-item-count"
 	HEADER_PARTITION_KEY        = "x-ms-documentdb-partitionkey"
 	HEADER_QUERY_CROSSPARTITION = "x-ms-documentdb-query-enablecrosspartition"
+	HEADER_REQUEST_CHARGE       = "x-ms-request-charge"
+	HEADER_RESOURCE_QUOTA       = "x-ms-resource-quota"
+	HEADER_RESOURCE_USAGE       = "x-ms-resource-usage"
+	HEADER_RETRY_AFTER          = "retry-after-ms"
 	HEADER_SESSION_TOKEN        = "x-ms-session-token" // nolint:gosec
 	HEADER_VERSION              = "x-ms-version"
 	TIME_FORMAT                 = "Mon, 02 Jan 2006 15:04:05 GMT"

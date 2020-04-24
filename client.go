@@ -7,17 +7,20 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/patrickmn/go-cache"
 
 	"github.com/zhevron/cosmos/api"
 )
 
 const (
-	apiVersion     = "2018-12-31"
-	httpRetryAfter = 449
+	apiVersion        = "2018-12-31"
+	httpRetryAfter    = 449
+	defaultRetryAfter = 100 * time.Millisecond
 )
 
 type Client struct {
@@ -26,33 +29,32 @@ type Client struct {
 	endpoint   *url.URL
 	key        Key
 	cache      *cache.Cache
+	tracer     opentracing.Tracer
 }
 
-func Dial(ctx context.Context, endpoint string, key string) (*Client, error) {
-	url, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	k, err := ParseKey(key)
-	if err != nil {
-		return nil, err
-	}
-
+func Dial(options ...DialOption) (*Client, error) {
 	client := &Client{
 		MaxRetries: 5,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		endpoint: url,
-		key:      k,
-		cache:    cache.New(5*time.Minute, 10*time.Minute),
+		cache:  cache.New(5*time.Minute, 10*time.Minute),
+		tracer: opentracing.NoopTracer{},
+	}
+
+	for _, option := range options {
+		if err := option(client); err != nil {
+			return nil, err
+		}
 	}
 
 	return client, nil
 }
 
 func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
+	span, ctx := c.startSpan(ctx, "cosmos.ListDatabases")
+	defer span.Finish()
+
 	var res api.ListDatabasesResponse
 	if _, err := c.get(ctx, createDatabaseLink(""), &res, nil); err != nil {
 		return nil, err
@@ -72,6 +74,9 @@ func (c Client) ListDatabases(ctx context.Context) ([]*Database, error) {
 }
 
 func (c Client) GetDatabase(ctx context.Context, id string) (*Database, error) {
+	span, ctx := c.startSpan(ctx, "cosmos.GetDatabase")
+	defer span.Finish()
+
 	if database, found := c.cache.Get(id); found {
 		return database.(*Database), nil
 	}
@@ -92,6 +97,9 @@ func (c Client) GetDatabase(ctx context.Context, id string) (*Database, error) {
 }
 
 func (c Client) CreateDatabase(ctx context.Context, id string) (*Database, error) {
+	span, ctx := c.startSpan(ctx, "cosmos.CreateDatabase")
+	defer span.Finish()
+
 	req := api.CreateDatabaseRequest{
 		ID: id,
 	}
@@ -110,6 +118,9 @@ func (c Client) CreateDatabase(ctx context.Context, id string) (*Database, error
 }
 
 func (c Client) DeleteDatabase(ctx context.Context, id string) error {
+	span, ctx := c.startSpan(ctx, "cosmos.DeleteDatabase")
+	defer span.Finish()
+
 	_, err := c.delete(ctx, createDatabaseLink(id), nil)
 	return err
 }
@@ -155,7 +166,19 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	}
 
 	signRequest(c.key, req)
-	return doRequest(c.client, req, out, 0, c.MaxRetries)
+	return doRequest(ctx, c.client, req, out, 0, c.MaxRetries)
+}
+
+func (c Client) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
+	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, c.tracer, operationName)
+
+	span.SetTag("db.type", "cosmosdb")
+	span.SetTag("peer.address", c.endpoint.String())
+	span.SetTag("peer.hostname", c.endpoint.Hostname())
+	span.SetTag("peer.port", c.endpoint.Port())
+	span.SetTag("span.kind", "client")
+
+	return span, ctx
 }
 
 func applyDefaultHeaders(req *http.Request) {
@@ -203,11 +226,22 @@ func resourceTypeFromLink(uri string) (string, string) {
 	}
 }
 
-func doRequest(client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
+func doRequest(ctx context.Context, client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
+	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
+	addSpanTagsFromResponse(spanCtx, res)
+
+	if retry, retryAfter := shouldRetry(res); retry && currentAttempt < maxRetries {
+		span.Finish()
+		time.Sleep(retryAfter)
+		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+	}
+	defer span.Finish()
 
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
@@ -220,16 +254,49 @@ func doRequest(client *http.Client, req *http.Request, out interface{}, currentA
 		return res, nil
 	}
 
-	if shouldRetry(res.StatusCode) && currentAttempt < maxRetries {
-		time.Sleep(100 * time.Millisecond)
-		return doRequest(client, req, out, currentAttempt+1, maxRetries)
-	}
-
 	return res, errorFromResponse(res)
 }
 
-func shouldRetry(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode == httpRetryAfter
+func shouldRetry(res *http.Response) (bool, time.Duration) {
+	retryAfter := res.Header.Get(api.HEADER_RETRY_AFTER)
+	if retryAfter != "" {
+		if retryAfterMs, err := strconv.Atoi(retryAfter); err == nil {
+			return true, time.Duration(retryAfterMs) * time.Millisecond
+		}
+	}
+
+	if res.StatusCode == http.StatusTooManyRequests || res.StatusCode == httpRetryAfter {
+		return true, defaultRetryAfter
+	}
+	return false, 0 * time.Millisecond
+}
+
+func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
+	span := opentracing.SpanFromContext(ctx)
+	if span == nil {
+		return
+	}
+
+	span.SetTag("http.method", res.Request.Method)
+	span.SetTag("http.url", res.Request.URL.String())
+	span.SetTag("http.status_code", res.StatusCode)
+
+	requestCharge := res.Header.Get(api.HEADER_REQUEST_CHARGE)
+	if requestCharge != "" {
+		if ru, err := strconv.Atoi(requestCharge); err == nil {
+			span.SetTag("cosmos.request_charge", ru)
+		}
+	}
+
+	resourceQuota := res.Header.Get(api.HEADER_RESOURCE_QUOTA)
+	if resourceQuota != "" {
+		span.SetTag("cosmos.resource_quota", resourceQuota)
+	}
+
+	resourceUsage := res.Header.Get(api.HEADER_RESOURCE_USAGE)
+	if resourceUsage != "" {
+		span.SetTag("cosmos.resource_usage", resourceUsage)
+	}
 }
 
 func errorFromResponse(res *http.Response) error {
