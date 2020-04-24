@@ -42,14 +42,11 @@ func newDocumentIterator(ctx context.Context, client *Client, res *http.Response
 }
 
 func (it *DocumentIterator) All(out interface{}) error {
-	documents := make([]map[string]interface{}, it.total)
-	for i := 0; i < it.total; i++ {
-		if !it.Next(&documents[i]) {
-			break
-		}
+	if err := it.fetchAll(); err != nil {
+		return err
 	}
 
-	documentsJSON, err := json.Marshal(documents)
+	documentsJSON, err := json.Marshal(it.documents)
 	if err != nil {
 		it.err = err
 		return it.err
@@ -68,7 +65,7 @@ func (it *DocumentIterator) Next(out interface{}) bool {
 		it.err = json.Unmarshal(it.documents[it.current], out)
 		it.current++
 		return true
-	} else if it.current < it.total {
+	} else if it.continuationTokan != "" {
 		it.err = it.fetchNext()
 		return it.Next(out)
 	}
@@ -87,6 +84,16 @@ func (it *DocumentIterator) Count() int {
 
 func (it *DocumentIterator) Err() error {
 	return it.err
+}
+
+func (it *DocumentIterator) fetchAll() error {
+	for it.continuationTokan != "" {
+		if err := it.fetchNext(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (it *DocumentIterator) fetchNext() error {
