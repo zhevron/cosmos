@@ -283,7 +283,7 @@ func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
 
 	requestCharge := res.Header.Get(api.HEADER_REQUEST_CHARGE)
 	if requestCharge != "" {
-		if ru, err := strconv.Atoi(requestCharge); err == nil {
+		if ru, err := strconv.ParseFloat(requestCharge, 32); err == nil {
 			span.SetTag("cosmos.request_charge", ru)
 		}
 	}
