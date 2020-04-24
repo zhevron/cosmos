@@ -35,6 +35,8 @@ func (c Collection) GetDocument(ctx context.Context, partitionKey interface{}, i
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
 
+	span.SetTag("cosmos.partition_key", partitionKey)
+
 	_, err := c.database.Client().get(ctx, createDocumentLink(c.database.ID, c.ID, id), out, headers)
 	return err
 }
@@ -49,6 +51,8 @@ func (c Collection) CreateDocument(ctx context.Context, partitionKey interface{}
 	if upsert {
 		headers[api.HEADER_IS_UPSERT] = "True"
 	}
+
+	span.SetTag("cosmos.partition_key", partitionKey)
 
 	_, err := c.database.Client().post(ctx, createDocumentLink(c.database.ID, c.ID, ""), document, nil, headers)
 	return err
@@ -67,6 +71,8 @@ func (c Collection) ReplaceDocument(ctx context.Context, partitionKey interface{
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
 
+	span.SetTag("cosmos.partition_key", partitionKey)
+
 	_, err = c.database.Client().put(ctx, createDocumentLink(c.database.ID, c.ID, id), document, nil, headers)
 	return err
 }
@@ -83,6 +89,8 @@ func (c Collection) DeleteDocument(ctx context.Context, partitionKey interface{}
 	headers := map[string]string{
 		api.HEADER_PARTITION_KEY: makePartitionKeyHeaderValue(partitionKey),
 	}
+
+	span.SetTag("cosmos.partition_key", partitionKey)
 
 	_, err = c.database.Client().delete(ctx, createDocumentLink(c.database.ID, c.ID, id), headers)
 	return err
@@ -112,6 +120,7 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 
 	span.SetTag("db.statement", query)
 	span.SetTag("cosmos.parameters", queryParams)
+	span.SetTag("cosmos.partition_key", partitionKey)
 
 	apiQuery := &api.Query{
 		Query:      query,
