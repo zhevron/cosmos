@@ -180,16 +180,16 @@ func ContainsPartial(e *arrayContains) {
 }
 
 type arrayContains struct {
-	Field   string
-	Value   interface{}
-	Partial bool
+	Container interface{}
+	Value     interface{}
+	Partial   bool
 }
 
-func ArrayContains(field string, value interface{}, opts ...arrayContainsOption) Expression {
+func ArrayContains(container interface{}, value interface{}, opts ...arrayContainsOption) Expression {
 	e := &arrayContains{
-		Field:   field,
-		Value:   value,
-		Partial: false,
+		Container: container,
+		Value:     value,
+		Partial:   false,
 	}
 
 	for _, o := range opts {
@@ -200,16 +200,27 @@ func ArrayContains(field string, value interface{}, opts ...arrayContainsOption)
 }
 
 func (e arrayContains) String() string {
-	return "ARRAY_CONTAINS(" + e.Field + ", " + valueToString(e.Value) + ", " + valueToString(e.Partial) + ")"
+	container, ok := e.Container.(string)
+	if !ok || strings.HasPrefix(container, "@") {
+		container = valueToString(e.Container)
+	}
+
+	// TODO: Find a better way to determine if this is a field or a string.
+	value, ok := e.Value.(string)
+	if !ok || strings.Index(value, ".") != 1 {
+		value = valueToString(e.Value)
+	}
+
+	return "ARRAY_CONTAINS(" + container + ", " + value + ", " + valueToString(e.Partial) + ")"
 }
 
 type arrayNotContains struct {
 	arrayContains
 }
 
-func ArrayNotContains(field string, value interface{}, opts ...arrayContainsOption) Expression {
+func ArrayNotContains(container interface{}, value interface{}, opts ...arrayContainsOption) Expression {
 	return arrayNotContains{
-		arrayContains: ArrayContains(field, value, opts...).(arrayContains),
+		arrayContains: ArrayContains(container, value, opts...).(arrayContains),
 	}
 }
 
