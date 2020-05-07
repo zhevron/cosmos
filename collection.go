@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/zhevron/cosmos/api"
 )
 
@@ -118,7 +119,7 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 		}
 	}
 
-	span.SetTag("db.statement", query)
+	ext.DBStatement.Set(span, query)
 	span.SetTag("cosmos.parameters", queryParams)
 	span.SetTag("cosmos.partition_key", partitionKey)
 

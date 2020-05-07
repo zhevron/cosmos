@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/patrickmn/go-cache"
 
 	"github.com/zhevron/cosmos/api"
@@ -76,7 +77,7 @@ func (d Database) Client() *Client {
 
 func (d Database) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
 	span, ctx := d.client.startSpan(ctx, operationName)
-	span.SetTag("db.instance", d.ID)
+	ext.DBInstance.Set(span, d.ID)
 
 	return span, ctx
 }

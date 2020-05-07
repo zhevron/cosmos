@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/patrickmn/go-cache"
 
 	"github.com/zhevron/cosmos/api"
@@ -172,11 +173,14 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 func (c Client) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
 	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, c.tracer, operationName)
 
-	span.SetTag("db.type", "cosmosdb")
-	span.SetTag("peer.address", c.endpoint.String())
-	span.SetTag("peer.hostname", c.endpoint.Hostname())
-	span.SetTag("peer.port", c.endpoint.Port())
-	span.SetTag("span.kind", "client")
+	ext.DBType.Set(span, "cosmosdb")
+	ext.PeerAddress.Set(span, c.endpoint.String())
+	ext.PeerHostname.Set(span, c.endpoint.Hostname())
+	ext.SpanKind.Set(span, ext.SpanKindRPCClientEnum)
+
+	if port, err := strconv.Atoi(c.endpoint.Port()); err == nil {
+		ext.PeerPort.Set(span, uint16(port))
+	}
 
 	return span, ctx
 }
@@ -277,9 +281,9 @@ func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
 		return
 	}
 
-	span.SetTag("http.method", res.Request.Method)
-	span.SetTag("http.url", res.Request.URL.String())
-	span.SetTag("http.status_code", res.StatusCode)
+	ext.HTTPMethod.Set(span, res.Request.Method)
+	ext.HTTPUrl.Set(span, res.Request.URL.String())
+	ext.HTTPStatusCode.Set(span, uint16(res.StatusCode))
 
 	requestCharge := res.Header.Get(api.HEADER_REQUEST_CHARGE)
 	if requestCharge != "" {
