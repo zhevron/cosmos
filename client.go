@@ -148,12 +148,16 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 
 	var reader io.Reader
 	if body != nil {
-		bodyJSON, err := serialize(body)
-		if err != nil {
-			return nil, err
-		}
+		if b, ok := body.([]byte); ok {
+			reader = bytes.NewBuffer(b)
+		} else {
+			bodyJSON, err := serialize(body)
+			if err != nil {
+				return nil, err
+			}
 
-		reader = bytes.NewBuffer(bodyJSON)
+			reader = bytes.NewBuffer(bodyJSON)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, uri.String(), reader)
@@ -187,7 +191,9 @@ func (c Client) startSpan(ctx context.Context, operationName string) (opentracin
 
 func applyDefaultHeaders(req *http.Request) {
 	if req.Method == http.MethodPost || req.Method == http.MethodPut {
-		req.Header.Set(api.HEADER_CONTENT_TYPE, "application/json")
+		if req.Header.Get(api.HEADER_CONTENT_TYPE) == "" {
+			req.Header.Set(api.HEADER_CONTENT_TYPE, "application/json")
+		}
 	}
 
 	req.Header.Set(api.HEADER_DATE, time.Now().UTC().Format(api.TIME_FORMAT))
@@ -233,6 +239,8 @@ func resourceTypeFromLink(uri string) (string, string) {
 func doRequest(ctx context.Context, client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
 
+	addSpanTagsFromRequest(ctx, req)
+
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -275,14 +283,26 @@ func shouldRetry(res *http.Response) (bool, time.Duration) {
 	return false, 0 * time.Millisecond
 }
 
+func addSpanTagsFromRequest(ctx context.Context, req *http.Request) {
+	span := opentracing.SpanFromContext(ctx)
+	if span == nil {
+		return
+	}
+
+	ext.HTTPMethod.Set(span, req.Method)
+	ext.HTTPUrl.Set(span, req.URL.String())
+
+	if partitionKey := req.Header.Get(api.HEADER_PARTITION_KEY); partitionKey != "" {
+		span.SetTag("cosmos.partition_key", partitionKey)
+	}
+}
+
 func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
 	span := opentracing.SpanFromContext(ctx)
 	if span == nil {
 		return
 	}
 
-	ext.HTTPMethod.Set(span, res.Request.Method)
-	ext.HTTPUrl.Set(span, res.Request.URL.String())
 	ext.HTTPStatusCode.Set(span, uint16(res.StatusCode))
 
 	requestCharge := res.Header.Get(api.HEADER_REQUEST_CHARGE)

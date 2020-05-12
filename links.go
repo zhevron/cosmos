@@ -26,3 +26,12 @@ func createDocumentLink(databaseID string, collectionID string, documentID strin
 
 	return link
 }
+
+func createAttachmentLink(databaseID string, collectionID string, documentID string, attachmentID string) string {
+	link := createDocumentLink(databaseID, collectionID, documentID) + "/attachments"
+	if len(attachmentID) > 0 {
+		link += "/" + attachmentID
+	}
+
+	return link
+}
