@@ -162,15 +162,43 @@ func (e isNull) String() string {
 }
 
 type isNotNull struct {
-	Field string
+	isNull
 }
 
 func IsNotNull(field string) Expression {
-	return isNotNull{Field: field}
+	return isNotNull{
+		isNull: isNull{Field: field},
+	}
 }
 
 func (e isNotNull) String() string {
-	return "IS_NULL(" + e.Field + ") = false"
+	return e.isNull.String() + " = false"
+}
+
+type isDefined struct {
+	Field string
+}
+
+func IsDefined(field string) Expression {
+	return isDefined{Field: field}
+}
+
+func (e isDefined) String() string {
+	return "IS_DEFINED(" + e.Field + ")"
+}
+
+type isNotDefined struct {
+	isDefined
+}
+
+func IsNotDefined(field string) Expression {
+	return isNotDefined{
+		isDefined: isDefined{Field: field},
+	}
+}
+
+func (e isNotDefined) String() string {
+	return e.isDefined.String() + " = false"
 }
 
 type arrayContainsOption func(e *arrayContains)
