@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -358,13 +359,18 @@ func errorFromResponse(res *http.Response) error {
 }
 
 func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
+	b, err := ioutil.ReadAll(bodyReader)
+	if err != nil {
+		return "", err
+	}
+
 	var body struct {
 		Code    string
 		Message string
 	}
 
-	if err := json.NewDecoder(bodyReader).Decode(&body); err != nil {
-		return "", err
+	if err := json.Unmarshal(b, &body); err != nil {
+		return string(b), nil
 	}
 
 	var errors struct {
