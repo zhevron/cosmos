@@ -383,11 +383,11 @@ func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
 
 	errorsJSON := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.Replace(body.Message, "\r\n", "\n", -1), "\n")[0], "Message:"))
 	if err := json.Unmarshal([]byte(errorsJSON), &errors); err != nil {
-		return "", err
+		return body.Message, nil
 	}
 
 	if len(errors.Errors) == 0 {
-		return "", nil
+		return body.Message, nil
 	}
 
 	return errors.Errors[0].Message, nil
