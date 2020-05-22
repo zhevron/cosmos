@@ -327,11 +327,7 @@ func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
 func errorFromResponse(res *http.Response) error {
 	switch res.StatusCode {
 	case http.StatusBadRequest:
-		message, err := errorMessageFromBody(res.Body)
-		if err != nil {
-			return err
-		}
-		return &CosmosError{Code: ErrBadRequest, Message: message}
+		return &CosmosError{Code: ErrBadRequest, Message: errorMessageFromBody(res.Body)}
 
 	case http.StatusUnauthorized:
 		return &CosmosError{Code: ErrUnauthorized, Message: res.Status} // TODO: Message from response?
@@ -358,10 +354,10 @@ func errorFromResponse(res *http.Response) error {
 	return &CosmosError{Code: ErrInternalServerError, Message: "internal server error"}
 }
 
-func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
+func errorMessageFromBody(bodyReader io.ReadCloser) string {
 	b, err := ioutil.ReadAll(bodyReader)
 	if err != nil {
-		return "", err
+		return err.Error()
 	}
 
 	var body struct {
@@ -370,7 +366,7 @@ func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
 	}
 
 	if err := json.Unmarshal(b, &body); err != nil {
-		return string(b), nil
+		return string(b)
 	}
 
 	var errors struct {
@@ -383,14 +379,14 @@ func errorMessageFromBody(bodyReader io.ReadCloser) (string, error) {
 
 	errorsJSON := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.Replace(body.Message, "\r\n", "\n", -1), "\n")[0], "Message:"))
 	if err := json.Unmarshal([]byte(errorsJSON), &errors); err != nil {
-		return body.Message, nil
+		return body.Message
 	}
 
 	if len(errors.Errors) == 0 {
-		return body.Message, nil
+		return body.Message
 	}
 
-	return errors.Errors[0].Message, nil
+	return errors.Errors[0].Message
 }
 
 func serialize(value interface{}) ([]byte, error) {
