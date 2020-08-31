@@ -3,6 +3,7 @@ package cosmos
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/opentracing/opentracing-go"
 )
@@ -49,6 +50,13 @@ func WithKey(key string) DialOption {
 func WithEndpoint(endpoint *url.URL) DialOption {
 	return func(c *Client) error {
 		c.endpoint = endpoint
+		return nil
+	}
+}
+
+func WithTimeout(timeout time.Duration) DialOption {
+	return func(c *Client) error {
+		c.client.Timeout = timeout
 		return nil
 	}
 }
