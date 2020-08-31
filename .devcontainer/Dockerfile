@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.15-alpine
 
 # Install packages and tools
 RUN apk --no-cache add busybox curl gcc git libc-dev make nodejs zsh \

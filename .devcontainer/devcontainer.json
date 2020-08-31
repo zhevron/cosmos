@@ -10,8 +10,8 @@
 	"extensions": [
 		"eamodio.gitlens",
         "editorconfig.editorconfig",
+        "golang.go",
         "gruntfuggly.todo-tree",
-        "ms-vscode.go",
     ],
     "settings": {
         "terminal.integrated.shell.linux": "/bin/zsh",
