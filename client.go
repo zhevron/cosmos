@@ -14,6 +14,7 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/patrickmn/go-cache"
 
 	"github.com/zhevron/cosmos/api"
@@ -244,7 +245,13 @@ func doRequest(ctx context.Context, client *http.Client, req *http.Request, out 
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		ext.Error.Set(span, true)
+		span.LogFields(
+			log.String("event", "error"),
+			log.Error(err),
+		)
+		span.Finish()
+		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
 	}
 
 	addSpanTagsFromResponse(spanCtx, res)
@@ -267,7 +274,17 @@ func doRequest(ctx context.Context, client *http.Client, req *http.Request, out 
 		return res, nil
 	}
 
-	return res, errorFromResponse(res)
+	err = errorFromResponse(res)
+	if IsInternalServerError(err) {
+		ext.Error.Set(span, true)
+		span.LogFields(
+			log.String("event", "error"),
+			log.Error(err),
+		)
+		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+	}
+
+	return res, err
 }
 
 func shouldRetry(res *http.Response) (bool, time.Duration) {
@@ -377,7 +394,7 @@ func errorMessageFromBody(bodyReader io.ReadCloser) string {
 		}
 	}
 
-	errorsJSON := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.Replace(body.Message, "\r\n", "\n", -1), "\n")[0], "Message:"))
+	errorsJSON := strings.TrimSpace(strings.TrimPrefix(strings.Split(strings.ReplaceAll(body.Message, "\r\n", "\n"), "\n")[0], "Message:"))
 	if err := json.Unmarshal([]byte(errorsJSON), &errors); err != nil {
 		return body.Message
 	}
