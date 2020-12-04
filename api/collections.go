@@ -71,10 +71,10 @@ type ListCollectionsResponse struct {
 type CreateCollectionRequest struct {
 	ID             string         `json:"id"`
 	PartitionKey   PartitionKey   `json:"partitionKey"`
-	IndexingPolicy IndexingPolicy `json:"indexingPolicy"`
+	IndexingPolicy IndexingPolicy `json:"indexingPolicy,omitempty"`
 }
 
 type ReplaceCollectionRequest struct {
 	ID             string         `json:"id"`
-	IndexingPolicy IndexingPolicy `json:"indexingPolicy"`
+	IndexingPolicy IndexingPolicy `json:"indexingPolicy,omitempty"`
 }

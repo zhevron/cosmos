@@ -70,6 +70,14 @@ func (d Database) CreateCollection(ctx context.Context, id string, opts ...Creat
 		opt(&req, headers)
 	}
 
+	if req.PartitionKey.Paths == nil || len(req.PartitionKey.Paths) == 0 {
+		req.PartitionKey.Paths = []string{"/id"}
+	}
+	if req.PartitionKey.Kind == "" {
+		req.PartitionKey.Kind = api.PartitionKeyKindHash
+	}
+	req.PartitionKey.Version = api.PARTITION_KEY_VERSION
+
 	var coll api.Collection
 	if _, err := d.client.post(ctx, createCollectionLink(d.ID, ""), req, &coll, headers); err != nil {
 		return nil, err

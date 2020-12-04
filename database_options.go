@@ -11,7 +11,6 @@ type CreateCollectionOption func(*api.CreateCollectionRequest, map[string]string
 
 func WithPartitionKey(partitionKey api.PartitionKey) CreateCollectionOption {
 	return func(req *api.CreateCollectionRequest, headers map[string]string) {
-		partitionKey.Version = api.PARTITION_KEY_VERSION
 		req.PartitionKey = partitionKey
 	}
 }
