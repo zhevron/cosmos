@@ -48,6 +48,33 @@ type IndexingPolicy struct {
 	} `json:"excludedPaths"`
 }
 
+type PartitionKeyKind string
+
+const (
+	PartitionKeyKindHash PartitionKeyKind = "Hash"
+)
+
+type PartitionKey struct {
+	Paths   []string         `json:"paths"`
+	Kind    PartitionKeyKind `json:"kind"`
+	Version int              `json:"version"`
+}
+
+type AutopilotSettings struct {
+	MaxThroughput int `json:"maxThroughput"`
+}
+
 type ListCollectionsResponse struct {
 	DocumentCollections []Collection `json:"DocumentCollections"`
+}
+
+type CreateCollectionRequest struct {
+	ID             string         `json:"id"`
+	PartitionKey   PartitionKey   `json:"partitionKey"`
+	IndexingPolicy IndexingPolicy `json:"indexingPolicy"`
+}
+
+type ReplaceCollectionRequest struct {
+	ID             string         `json:"id"`
+	IndexingPolicy IndexingPolicy `json:"indexingPolicy"`
 }

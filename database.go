@@ -60,8 +60,53 @@ func (d Database) GetCollection(ctx context.Context, id string) (*Collection, er
 	return collection, nil
 }
 
-// TODO: Database.CreateCollection
-// TODO: Database.ReplaceCollection
+func (d Database) CreateCollection(ctx context.Context, id string, opts ...CreateCollectionOption) (*Collection, error) {
+	span, ctx := d.startSpan(ctx, "cosmos.CreateCollection")
+	defer span.Finish()
+
+	headers := make(map[string]string)
+	req := api.CreateCollectionRequest{ID: id}
+	for _, opt := range opts {
+		opt(&req, headers)
+	}
+
+	var coll api.Collection
+	if _, err := d.client.post(ctx, createCollectionLink(d.ID, ""), req, &coll, headers); err != nil {
+		return nil, err
+	}
+
+	collection := &Collection{
+		Collection: coll,
+		database:   &d,
+	}
+	d.cache.Set(coll.ID, collection, cache.DefaultExpiration)
+
+	return collection, nil
+}
+
+func (d Database) ReplaceCollection(ctx context.Context, id string, opts ...ReplaceCollectionOption) (*Collection, error) {
+	span, ctx := d.startSpan(ctx, "cosmos.ReplaceCollection")
+	defer span.Finish()
+
+	headers := make(map[string]string)
+	req := api.ReplaceCollectionRequest{ID: id}
+	for _, opt := range opts {
+		opt(&req, headers)
+	}
+
+	var coll api.Collection
+	if _, err := d.client.put(ctx, createCollectionLink(d.ID, id), req, &coll, headers); err != nil {
+		return nil, err
+	}
+
+	collection := &Collection{
+		Collection: coll,
+		database:   &d,
+	}
+	d.cache.Set(coll.ID, collection, cache.DefaultExpiration)
+
+	return collection, nil
+}
 
 func (d Database) DeleteCollection(ctx context.Context, id string) error {
 	span, ctx := d.startSpan(ctx, "cosmos.DeleteCollection")
