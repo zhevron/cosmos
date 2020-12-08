@@ -10,6 +10,7 @@ const (
 	HEADER_MAX_ITEM_COUNT       = "x-ms-max-item-count"
 	HEADER_PARTITION_KEY        = "x-ms-documentdb-partitionkey"
 	HEADER_QUERY_CROSSPARTITION = "x-ms-documentdb-query-enablecrosspartition"
+	HEADER_QUERY_METRICS        = "x-ms-documentdb-populatequerymetrics"
 	HEADER_OFFER_AUTOPILOT      = "x-ms-cosmos-offer-autopilot-settings"
 	HEADER_OFFER_THROUGHPUT     = "x-ms-offer-throughput"
 	HEADER_REQUEST_CHARGE       = "x-ms-request-charge"

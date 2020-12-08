@@ -27,13 +27,14 @@ const (
 )
 
 type Client struct {
-	MaxRetries    int
-	client        *http.Client
-	retryOnStatus []int
-	endpoint      *url.URL
-	key           Key
-	cache         *cache.Cache
-	tracer        opentracing.Tracer
+	MaxRetries           int
+	client               *http.Client
+	retryOnStatus        []int
+	populateQueryMetrics bool
+	endpoint             *url.URL
+	key                  Key
+	cache                *cache.Cache
+	tracer               opentracing.Tracer
 }
 
 func Dial(options ...DialOption) (*Client, error) {
@@ -171,6 +172,10 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	applyDefaultHeaders(req)
 	for k, v := range headers {
 		req.Header.Set(k, v)
+	}
+
+	if c.populateQueryMetrics {
+		req.Header.Set(api.HEADER_QUERY_METRICS, "True")
 	}
 
 	signRequest(c.key, req)

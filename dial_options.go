@@ -85,6 +85,13 @@ func WithTracer(tracerInstance opentracing.Tracer) DialOption {
 	}
 }
 
+func WithQueryMetrics(enableMetrics bool) DialOption {
+	return func(c *Client) error {
+		c.populateQueryMetrics = enableMetrics
+		return nil
+	}
+}
+
 func parseConnectionString(connectionString string) (endpoint *url.URL, key Key, err error) {
 	parts := strings.Split(connectionString, ";")
 	for _, part := range parts {
