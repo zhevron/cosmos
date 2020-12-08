@@ -54,6 +54,23 @@ func WithEndpoint(endpoint *url.URL) DialOption {
 	}
 }
 
+func WithRetries(retries int) DialOption {
+	return func(c *Client) error {
+		c.MaxRetries = retries
+		return nil
+	}
+}
+
+func WithRetryForStatusCode(statusCodes ...int) DialOption {
+	return func(c *Client) error {
+		if c.retryOnStatus == nil {
+			c.retryOnStatus = []int{}
+		}
+		c.retryOnStatus = append(c.retryOnStatus, statusCodes...)
+		return nil
+	}
+}
+
 func WithTimeout(timeout time.Duration) DialOption {
 	return func(c *Client) error {
 		c.client.Timeout = timeout

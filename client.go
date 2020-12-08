@@ -27,12 +27,13 @@ const (
 )
 
 type Client struct {
-	MaxRetries int
-	client     *http.Client
-	endpoint   *url.URL
-	key        Key
-	cache      *cache.Cache
-	tracer     opentracing.Tracer
+	MaxRetries    int
+	client        *http.Client
+	retryOnStatus []int
+	endpoint      *url.URL
+	key           Key
+	cache         *cache.Cache
+	tracer        opentracing.Tracer
 }
 
 func Dial(options ...DialOption) (*Client, error) {
@@ -173,7 +174,7 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	}
 
 	signRequest(c.key, req)
-	return doRequest(ctx, c.client, req, out, 0, c.MaxRetries)
+	return doRequest(ctx, c, req, out, 0, c.MaxRetries)
 }
 
 func (c Client) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
@@ -238,12 +239,12 @@ func resourceTypeFromLink(uri string) (string, string) {
 	}
 }
 
-func doRequest(ctx context.Context, client *http.Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
+func doRequest(ctx context.Context, client Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
 
 	addSpanTagsFromRequest(ctx, req)
 
-	res, err := client.Do(req)
+	res, err := client.client.Do(req)
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(
@@ -256,7 +257,7 @@ func doRequest(ctx context.Context, client *http.Client, req *http.Request, out 
 
 	addSpanTagsFromResponse(spanCtx, res)
 
-	if retry, retryAfter := shouldRetry(res); retry && currentAttempt < maxRetries {
+	if retry, retryAfter := shouldRetry(client, res); retry && currentAttempt < maxRetries {
 		span.Finish()
 		time.Sleep(retryAfter)
 		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
@@ -287,7 +288,7 @@ func doRequest(ctx context.Context, client *http.Client, req *http.Request, out 
 	return res, err
 }
 
-func shouldRetry(res *http.Response) (bool, time.Duration) {
+func shouldRetry(c Client, res *http.Response) (bool, time.Duration) {
 	retryAfter := res.Header.Get(api.HEADER_RETRY_AFTER)
 	if retryAfter != "" {
 		if retryAfterMs, err := strconv.Atoi(retryAfter); err == nil {
@@ -298,6 +299,17 @@ func shouldRetry(res *http.Response) (bool, time.Duration) {
 	if res.StatusCode == http.StatusTooManyRequests || res.StatusCode == httpRetryAfter {
 		return true, defaultRetryAfter
 	}
+
+	if c.retryOnStatus == nil || len(c.retryOnStatus) == 0 {
+		return false, 0 * time.Millisecond
+	}
+
+	for _, code := range c.retryOnStatus {
+		if res.StatusCode == code {
+			return true, defaultRetryAfter
+		}
+	}
+
 	return false, 0 * time.Millisecond
 }
 
