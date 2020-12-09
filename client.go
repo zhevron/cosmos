@@ -41,7 +41,8 @@ func Dial(options ...DialOption) (*Client, error) {
 	client := &Client{
 		MaxRetries: 5,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   10 * time.Second,
+			Transport: http.DefaultTransport.(*http.Transport).Clone(),
 		},
 		cache:  cache.New(5*time.Minute, 10*time.Minute),
 		tracer: opentracing.NoopTracer{},
