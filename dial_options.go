@@ -1,6 +1,7 @@
 package cosmos
 
 import (
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -88,6 +89,13 @@ func WithTracer(tracerInstance opentracing.Tracer) DialOption {
 func WithQueryMetrics(enableMetrics bool) DialOption {
 	return func(c *Client) error {
 		c.populateQueryMetrics = enableMetrics
+		return nil
+	}
+}
+
+func WithConnectionPooling(enableConnectionPooling bool) DialOption {
+	return func(c *Client) error {
+		c.client.Transport.(*http.Transport).DisableKeepAlives = enableConnectionPooling
 		return nil
 	}
 }
