@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -435,6 +436,13 @@ func serialize(value interface{}) ([]byte, error) {
 	default:
 		return json.Marshal(v)
 	}
+}
+
+func isNil(value interface{}) bool {
+	if rv := reflect.ValueOf(value); rv.Kind() == reflect.Ptr {
+		return rv.IsNil()
+	}
+	return value == nil
 }
 
 func makePartitionKeyHeaderValue(partitionKey interface{}) string {

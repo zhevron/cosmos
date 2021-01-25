@@ -100,7 +100,7 @@ func (c Collection) QueryDocuments(ctx context.Context, partitionKey interface{}
 		api.HEADER_IS_QUERY:     "True",
 	}
 
-	if partitionKey == nil {
+	if isNil(partitionKey) {
 		headers[api.HEADER_QUERY_CROSSPARTITION] = "True"
 	} else {
 		headers[api.HEADER_PARTITION_KEY] = makePartitionKeyHeaderValue(partitionKey)
