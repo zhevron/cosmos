@@ -248,8 +248,9 @@ func resourceTypeFromLink(uri string) (string, string) {
 
 func doRequest(ctx context.Context, client Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
+	defer span.Finish()
 
-	addSpanTagsFromRequest(ctx, req)
+	addSpanTagsFromRequest(spanCtx, req)
 
 	res, err := client.client.Do(req)
 	if err != nil {
@@ -258,18 +259,15 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 			log.String("event", "error"),
 			log.Error(err),
 		)
-		span.Finish()
-		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+		if retry, retryAfter := shouldRetry(client, res, currentAttempt, maxRetries); retry {
+			time.Sleep(retryAfter)
+			return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+		} else {
+			return nil, err
+		}
 	}
 
 	addSpanTagsFromResponse(spanCtx, res)
-
-	if retry, retryAfter := shouldRetry(client, res); retry && currentAttempt < maxRetries {
-		span.Finish()
-		time.Sleep(retryAfter)
-		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
-	}
-	defer span.Finish()
 
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusCreated:
@@ -282,20 +280,27 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 		return res, nil
 	}
 
+	if retry, retryAfter := shouldRetry(client, res, currentAttempt, maxRetries); retry {
+		time.Sleep(retryAfter)
+		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+	}
+
 	err = errorFromResponse(res)
-	if IsInternalServerError(err) {
+	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(
 			log.String("event", "error"),
 			log.Error(err),
 		)
-		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
 	}
-
 	return res, err
 }
 
-func shouldRetry(c Client, res *http.Response) (bool, time.Duration) {
+func shouldRetry(c Client, res *http.Response, currentAttempt int, maxRetries int) (bool, time.Duration) {
+	if currentAttempt >= maxRetries {
+		return false, 0 * time.Millisecond
+	}
+
 	retryAfter := res.Header.Get(api.HEADER_RETRY_AFTER)
 	if retryAfter != "" {
 		if retryAfterMs, err := strconv.Atoi(retryAfter); err == nil {
