@@ -248,7 +248,6 @@ func resourceTypeFromLink(uri string) (string, string) {
 
 func doRequest(ctx context.Context, client Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
-	defer span.Finish()
 
 	addSpanTagsFromRequest(spanCtx, req)
 
@@ -259,6 +258,7 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 			log.String("event", "error"),
 			log.Error(err),
 		)
+		span.Finish()
 		return res, err
 	}
 
@@ -270,12 +270,15 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 			return res, nil
 		}
 
+		span.Finish()
 		return res, json.NewDecoder(res.Body).Decode(out)
 	case http.StatusNoContent:
+		span.Finish()
 		return res, nil
 	}
 
 	if retry, retryAfter := shouldRetry(client, res, currentAttempt, maxRetries); retry {
+		span.Finish()
 		time.Sleep(retryAfter)
 		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
 	}
@@ -288,6 +291,8 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 			log.Error(err),
 		)
 	}
+
+	span.Finish()
 	return res, err
 }
 
