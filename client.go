@@ -259,12 +259,7 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 			log.String("event", "error"),
 			log.Error(err),
 		)
-		if retry, retryAfter := shouldRetry(client, res, currentAttempt, maxRetries); retry {
-			time.Sleep(retryAfter)
-			return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
-		} else {
-			return nil, err
-		}
+		return res, err
 	}
 
 	addSpanTagsFromResponse(spanCtx, res)
