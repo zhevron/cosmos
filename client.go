@@ -261,6 +261,7 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 		span.Finish()
 		return res, err
 	}
+	defer res.Body.Close()
 
 	addSpanTagsFromResponse(spanCtx, res)
 
