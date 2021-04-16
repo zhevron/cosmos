@@ -3,7 +3,7 @@
 	"build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "VARIANT": "1.15"
+            "VARIANT": "1.16"
         }
     },
     "mounts": [
@@ -16,10 +16,7 @@
         "gruntfuggly.todo-tree"
     ],
     "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash",
-        "go.useGoProxyToCheckForToolUpdates": false,
         "go.gopath": "/go",
-        "go.useLanguageServer": true,
         "todo-tree.general.statusBar": "top three"
     },
 	"postCreateCommand": "go mod download",
