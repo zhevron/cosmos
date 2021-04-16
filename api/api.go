@@ -1,6 +1,7 @@
 package api
 
 const (
+	HEADER_ACCEPT               = "Accept"
 	HEADER_CONSISTENCY_LEVEL    = "x-ms-consistency-level"
 	HEADER_CONTENT_TYPE         = "Content-Type"
 	HEADER_CONTINUATION         = "x-ms-continuation"

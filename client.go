@@ -206,6 +206,10 @@ func applyDefaultHeaders(req *http.Request) {
 		}
 	}
 
+	if req.Header.Get(api.HEADER_ACCEPT) == "" {
+		req.Header.Set(api.HEADER_ACCEPT, "application/json")
+	}
+
 	req.Header.Set(api.HEADER_DATE, time.Now().UTC().Format(api.TIME_FORMAT))
 	req.Header.Set(api.HEADER_MAX_ITEM_COUNT, "-1")
 	req.Header.Set(api.HEADER_VERSION, apiVersion)
@@ -369,7 +373,7 @@ func addSpanTagsFromResponse(ctx context.Context, res *http.Response) {
 func errorFromResponse(res *http.Response) error {
 	switch res.StatusCode {
 	case http.StatusBadRequest:
-		return &CosmosError{Code: ErrBadRequest, Message: errorMessageFromBody(res.Body)}
+		return &CosmosError{Code: ErrBadRequest, Message: errorMessageFromBody(res)}
 
 	case http.StatusUnauthorized:
 		return &CosmosError{Code: ErrUnauthorized, Message: res.Status} // TODO: Message from response?
@@ -396,19 +400,30 @@ func errorFromResponse(res *http.Response) error {
 	return &CosmosError{Code: ErrInternalServerError, Message: "internal server error"}
 }
 
-func errorMessageFromBody(bodyReader io.ReadCloser) string {
-	b, err := ioutil.ReadAll(bodyReader)
+func errorMessageFromBody(res *http.Response) string {
+	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err.Error()
 	}
 
+	contentType := res.Header.Get(api.HEADER_CONTENT_TYPE)
+	switch contentType {
+	case "application/json":
+		return errorMessageFromJSON(b)
+
+	default:
+		return string(b)
+	}
+}
+
+func errorMessageFromJSON(data []byte) string {
 	var body struct {
 		Code    string
 		Message string
 	}
 
-	if err := json.Unmarshal(b, &body); err != nil {
-		return string(b)
+	if err := json.Unmarshal(data, &body); err != nil {
+		return string(data)
 	}
 
 	var errors struct {
