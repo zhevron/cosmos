@@ -86,6 +86,13 @@ func WithTracer(tracerInstance opentracing.Tracer) DialOption {
 	}
 }
 
+func WithTransport(transport http.RoundTripper) DialOption {
+	return func(c *Client) error {
+		c.client.Transport = transport
+		return nil
+	}
+}
+
 func WithQueryMetrics(enableMetrics bool) DialOption {
 	return func(c *Client) error {
 		c.populateQueryMetrics = enableMetrics
