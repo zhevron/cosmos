@@ -166,7 +166,7 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, uri.String(), reader)
+	req, err := http.NewRequestWithContext(ctx, method, uri.String(), ioutil.NopCloser(reader))
 	if err != nil {
 		return nil, err
 	}
