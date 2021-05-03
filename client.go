@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -152,21 +151,20 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	uri, _ := url.Parse(c.endpoint.String())
 	uri.Path = link
 
-	var reader io.Reader
+	var bodyBytes []byte
 	if body != nil {
 		if b, ok := body.([]byte); ok {
-			reader = bytes.NewBuffer(b)
+			bodyBytes = b
 		} else {
 			bodyJSON, err := serialize(body)
 			if err != nil {
 				return nil, err
 			}
-
-			reader = bytes.NewBuffer(bodyJSON)
+			bodyBytes = bodyJSON
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, uri.String(), ioutil.NopCloser(reader))
+	req, err := http.NewRequestWithContext(ctx, method, uri.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +179,7 @@ func (c Client) request(ctx context.Context, method string, link string, body in
 	}
 
 	signRequest(c.key, req)
-	return doRequest(ctx, c, req, out, 0, c.MaxRetries)
+	return doRequest(ctx, c, req, bodyBytes, out, 0, c.MaxRetries)
 }
 
 func (c Client) startSpan(ctx context.Context, operationName string) (opentracing.Span, context.Context) {
@@ -250,11 +248,12 @@ func resourceTypeFromLink(uri string) (string, string) {
 	}
 }
 
-func doRequest(ctx context.Context, client Client, req *http.Request, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
+func doRequest(ctx context.Context, client Client, req *http.Request, body []byte, out interface{}, currentAttempt int, maxRetries int) (*http.Response, error) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, "cosmos.HttpRequest")
 
 	addSpanTagsFromRequest(spanCtx, req)
 
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	res, err := client.client.Do(req)
 	if err != nil {
 		ext.Error.Set(span, true)
@@ -285,7 +284,7 @@ func doRequest(ctx context.Context, client Client, req *http.Request, out interf
 	if retry, retryAfter := shouldRetry(client, res, currentAttempt, maxRetries); retry {
 		span.Finish()
 		time.Sleep(retryAfter)
-		return doRequest(ctx, client, req, out, currentAttempt+1, maxRetries)
+		return doRequest(ctx, client, req, body, out, currentAttempt+1, maxRetries)
 	}
 
 	err = errorFromResponse(res)
